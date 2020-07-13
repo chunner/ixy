@@ -10,6 +10,7 @@
 #include "log.h"
 
 void remove_driver(const char* pci_addr) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/driver/unbind", pci_addr);
 	int fd = open(path, O_WRONLY);
@@ -24,6 +25,7 @@ void remove_driver(const char* pci_addr) {
 }
 
 void enable_dma(const char* pci_addr) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/config", pci_addr);
 	int fd = check_err(open(path, O_RDWR), "open pci config");
@@ -39,6 +41,7 @@ void enable_dma(const char* pci_addr) {
 }
 
 uint8_t* pci_map_resource(const char* pci_addr) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/resource0", pci_addr);
 	debug("Mapping PCI resource at %s", path);
@@ -53,6 +56,7 @@ uint8_t* pci_map_resource(const char* pci_addr) {
 }
 
 int pci_open_resource(const char* pci_addr, const char* resource, int flags) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/%s", pci_addr, resource);
 	debug("Opening PCI resource at %s", path);
