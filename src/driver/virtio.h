@@ -8,6 +8,9 @@
 struct virtio_device {
 	struct ixy_device ixy;
 	int fd;
+	/* BIBO add */
+	uint8_t* addr;
+	/* BIBO add */
 	void* rx_queue;
 	void* tx_queue;
 	void* ctrl_queue;

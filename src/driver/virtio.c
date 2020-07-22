@@ -3,6 +3,11 @@
 #include <string.h>
 #include <sys/file.h>
 #include <unistd.h>
+/* BIBO add */
+#include <linux/limits.h>
+#include <linux/vfio.h>
+#include <sys/stat.h>
+/* BIBO add */
 
 #include "driver/device.h"
 #include "log.h"
@@ -10,22 +15,37 @@
 #include "pci.h"
 #include "virtio.h"
 #include "virtio_type.h"
+/* BIBO add */
+#include "libixy-vfio.h"
+/* BIBO add */
 
 static const char* driver_name = "ixy-virtio";
 
 static inline void virtio_legacy_notify_queue(struct virtio_device* dev, uint16_t idx) {
 printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+#ifdef PIO
 	write_io16(dev->fd, idx, VIRTIO_PCI_QUEUE_NOTIFY);
+#else
+	set_reg16(dev->addr, VIRTIO_PCI_QUEUE_NOTIFY, idx);
+#endif
 }
 
 static uint8_t virtio_legacy_get_status(struct virtio_device* dev) {
 printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+#ifdef PIO
 	return read_io8(dev->fd, VIRTIO_PCI_STATUS);
+#else
+	return get_reg8(dev->addr, VIRTIO_PCI_STATUS);
+#endif
 }
 
 static void virtio_legacy_check_status(struct virtio_device* dev) {
 printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+#ifdef PIO
 	if (read_io8(dev->fd, VIRTIO_PCI_STATUS) == VIRTIO_CONFIG_STATUS_FAILED) {
+#else
+	if (get_reg8(dev->addr, VIRTIO_PCI_STATUS) == VIRTIO_CONFIG_STATUS_FAILED) {
+#endif
 		error("Device signaled unrecoverable error");
 	}
 }
@@ -56,8 +76,13 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	}
 
 	// Create virt queue itself - Section 4.1.5.1.3
+#ifdef PIO
 	write_io16(dev->fd, idx, VIRTIO_PCI_QUEUE_SEL);
 	uint32_t max_queue_size = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NUM);
+#else
+	set_reg16(dev->addr, VIRTIO_PCI_QUEUE_SEL, idx);
+	uint32_t max_queue_size = get_reg16(dev->addr, VIRTIO_PCI_QUEUE_NUM);
+#endif
 	debug("Max queue size of tx queue #%u: %u", idx, max_queue_size);
 	if (max_queue_size == 0) {
 		return;
@@ -66,7 +91,11 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct dma_memory mem = memory_allocate_dma(virt_queue_mem_size, true);
 	memset(mem.virt, 0xab, virt_queue_mem_size);
 	debug("Allocated %zu bytes for virt queue at %p", virt_queue_mem_size, mem.virt);
+#ifdef PIO
 	write_io32(dev->fd, mem.phy >> VIRTIO_PCI_QUEUE_ADDR_SHIFT, VIRTIO_PCI_QUEUE_PFN);
+#else
+	set_reg32(dev->addr, VIRTIO_PCI_QUEUE_PFN, mem.phy >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
+#endif
 
 	// Section 2.4.2 for layout
 	struct virtqueue* vq = calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
@@ -86,7 +115,11 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	vq->vq_used_last_idx = 0;
 
 	// Section 4.1.4.4
+#ifdef PIO
 	uint32_t notify_offset = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NOTIFY);
+#else
+	uint32_t notify_offset = get_reg16(dev->addr, VIRTIO_PCI_QUEUE_NOTIFY);
+#endif
 	debug("vq notifcation offset %u", notify_offset);
 	vq->notification_offset = notify_offset;
 
@@ -235,19 +268,32 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	}
 
 	// Create virt queue itself - Section 4.1.5.1.3
+#ifdef PIO
 	write_io16(dev->fd, idx, VIRTIO_PCI_QUEUE_SEL);
 	uint32_t max_queue_size = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NUM);
+#else
+	set_reg16(dev->addr, VIRTIO_PCI_QUEUE_SEL, idx);
+	uint32_t max_queue_size = get_reg16(dev->addr, VIRTIO_PCI_QUEUE_NUM);
+#endif
 	debug("Max queue size of rx queue #%u: %u", idx, max_queue_size);
 	if (max_queue_size == 0) {
 		return;
 	}
+#ifdef PIO
 	uint32_t notify_offset = read_io16(dev->fd, VIRTIO_PCI_QUEUE_NOTIFY);
+#else
+	uint32_t notify_offset = get_reg16(dev->addr, VIRTIO_PCI_QUEUE_NOTIFY);
+#endif
 	debug("Notifcation offset %u", notify_offset);
 	size_t virt_queue_mem_size = virtio_legacy_vring_size(max_queue_size, 4096);
 	struct dma_memory mem = memory_allocate_dma(virt_queue_mem_size, true);
 	memset(mem.virt, 0xab, virt_queue_mem_size);
 	debug("Allocated %zu bytes for virt queue at %p", virt_queue_mem_size, mem.virt);
+#ifdef PIO
 	write_io32(dev->fd, mem.phy >> VIRTIO_PCI_QUEUE_ADDR_SHIFT, VIRTIO_PCI_QUEUE_PFN);
+#else
+	set_reg32(dev->addr, VIRTIO_PCI_QUEUE_PFN, mem.phy >> VIRTIO_PCI_QUEUE_ADDR_SHIFT);
+#endif
 
 	// Section 2.4.2 for layout
 	struct virtqueue* vq = calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
@@ -285,14 +331,28 @@ static void virtio_legacy_init(struct virtio_device* dev) {
 printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Section 3.1
 	debug("Configuring bar0");
+#ifdef PIO
 	write_io8(dev->fd, VIRTIO_CONFIG_STATUS_RESET, VIRTIO_PCI_STATUS);
 	while (read_io8(dev->fd, VIRTIO_PCI_STATUS) != VIRTIO_CONFIG_STATUS_RESET) {
 		usleep(100);
 	}
 	write_io8(dev->fd, VIRTIO_CONFIG_STATUS_ACK, VIRTIO_PCI_STATUS);
 	write_io8(dev->fd, VIRTIO_CONFIG_STATUS_DRIVER, VIRTIO_PCI_STATUS);
+#else
+	set_reg8(dev->addr, VIRTIO_PCI_STATUS, VIRTIO_CONFIG_STATUS_RESET);
+	while (get_reg8(dev->addr, VIRTIO_PCI_STATUS) != VIRTIO_CONFIG_STATUS_RESET) {
+		usleep(100);
+	}
+	set_reg8(dev->addr, VIRTIO_PCI_STATUS, VIRTIO_CONFIG_STATUS_ACK);
+	set_reg8(dev->addr, VIRTIO_PCI_STATUS, VIRTIO_CONFIG_STATUS_DRIVER);
+#endif
+
 	// Negotiate features
+#ifdef PIO
 	uint32_t host_features = read_io32(dev->fd, VIRTIO_PCI_HOST_FEATURES);
+#else
+	uint32_t host_features = get_reg32(dev->addr, VIRTIO_PCI_HOST_FEATURES);
+#endif
 	debug("Host features: %x", host_features);
 	const uint32_t required_features = (1u << VIRTIO_NET_F_CSUM) | (1u << VIRTIO_NET_F_GUEST_CSUM) |
 					   (1u << VIRTIO_NET_F_CTRL_VQ) | (1u << VIRTIO_F_ANY_LAYOUT) |
@@ -301,9 +361,15 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if ((host_features & required_features) != required_features) {
 		error("Device does not support required features");
 	}
+#ifdef PIO
 	debug("Guest features before negotiation: %x", read_io32(dev->fd, VIRTIO_PCI_GUEST_FEATURES));
 	write_io32(dev->fd, required_features, VIRTIO_PCI_GUEST_FEATURES);
 	debug("Guest features after negotiation: %x", read_io32(dev->fd, VIRTIO_PCI_GUEST_FEATURES));
+#else
+	debug("Guest features before negotiation: %x", get_reg32(dev->addr, VIRTIO_PCI_GUEST_FEATURES));
+	set_reg32(dev->addr, VIRTIO_PCI_GUEST_FEATURES, required_features);
+	debug("Guest features after negotiation: %x", get_reg32(dev->addr, VIRTIO_PCI_GUEST_FEATURES));
+#endif
 	// Queue setup - Section 5.1.2 for queue index calculation
 	// Legacy devices only have 3 queues
 	virtio_legacy_setup_rx_queue(dev, 0); // Rx
@@ -311,7 +377,11 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	virtio_legacy_setup_tx_queue(dev, 2); // Control
 	_mm_mfence();
 	// Signal OK
+#ifdef PIO
 	write_io8(dev->fd, VIRTIO_CONFIG_STATUS_DRIVER_OK, VIRTIO_PCI_STATUS);
+#else
+	set_reg8(dev->addr, VIRTIO_PCI_STATUS, VIRTIO_CONFIG_STATUS_DRIVER_OK);
+#endif
 	info("Setup complete");
 	// Recheck status
 	virtio_legacy_check_status(dev);
@@ -350,6 +420,21 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	remove_driver(pci_addr);
 	struct virtio_device* dev = calloc(1, sizeof(*dev));
 	dev->ixy.pci_addr = strdup(pci_addr);
+	/* BIBO add */
+	// Check if we want the VFIO stuff
+        // This is done by checking if the device is in an IOMMU group.
+        char path[PATH_MAX];
+        snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/iommu_group", pci_addr);
+        struct stat buffer;
+        dev->ixy.vfio = stat(path, &buffer) == 0;
+        if (dev->ixy.vfio) {
+                // initialize the IOMMU for this device
+                dev->ixy.vfio_fd = vfio_init(pci_addr);
+                if (dev->ixy.vfio_fd < 0) {
+                        error("could not initialize the IOMMU for device %s", pci_addr);
+                }
+        }
+	/* BIBO add */
 	dev->ixy.driver_name = driver_name;
 	dev->ixy.num_rx_queues = rx_queues;
 	dev->ixy.num_tx_queues = tx_queues;
@@ -358,6 +443,18 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	dev->ixy.read_stats = virtio_read_stats;
 	dev->ixy.set_promisc = virtio_set_promisc;
 	dev->ixy.get_link_speed = virtio_get_link_speed;
+	/* BIBO add */
+	// Map BAR0 region
+        if (dev->ixy.vfio) {
+                debug("mapping BAR0 region via VFIO...");
+                dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR0_REGION_INDEX);
+                //// initialize interrupts for this device
+                //setup_interrupts(dev);
+        } else {
+                debug("mapping BAR0 region via pci file...");
+                dev->addr = pci_map_resource(pci_addr);
+        }
+	/* BIBO add */
 	enable_dma(pci_addr);
 	int config = pci_open_resource(pci_addr, "config", O_RDONLY);
 	uint16_t device_id = read_io16(config, 2);

@@ -95,11 +95,39 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	*((volatile uint32_t*) (addr + reg)) = value;
 }
 
+/* BIBO add */
+static inline void set_reg16(uint8_t* addr, int reg, uint16_t value) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	__asm__ volatile ("" : : : "memory");
+	*((volatile uint16_t*) (addr + reg)) = value;
+}
+
+static inline void set_reg8(uint8_t* addr, int reg, uint8_t value) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	__asm__ volatile ("" : : : "memory");
+	*((volatile uint8_t*) (addr + reg)) = value;
+}
+/* BIBO add */
+
 static inline uint32_t get_reg32(const uint8_t* addr, int reg) {
 printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile ("" : : : "memory");
 	return *((volatile uint32_t*) (addr + reg));
 }
+
+/* BIBO add */
+static inline uint16_t get_reg16(const uint8_t* addr, int reg) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	__asm__ volatile ("" : : : "memory");
+	return *((volatile uint16_t*) (addr + reg));
+}
+
+static inline uint8_t get_reg8(const uint8_t* addr, int reg) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	__asm__ volatile ("" : : : "memory");
+	return *((volatile uint8_t*) (addr + reg));
+}
+/* BIBO add */
 
 static inline void set_flags32(uint8_t* addr, int reg, uint32_t flags) {
 printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
