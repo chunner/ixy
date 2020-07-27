@@ -457,7 +457,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	/* BIBO add */
 	enable_dma(pci_addr);
 	int config = pci_open_resource(pci_addr, "config", O_RDONLY);
-	uint16_t device_id = read_io16(config, 2);
+	uint16_t device_id = read_io16(config, 2); printf("device_id: %04x\n", device_id);
 	close(config);
 	// Check config if device is legacy network card
 	if (device_id == 0x1000) {
