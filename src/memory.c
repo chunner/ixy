@@ -21,6 +21,7 @@ volatile int VFIO_CONTAINER_FILE_DESCRIPTOR = -1;
 
 // translate a virtual address to a physical one via /proc/self/pagemap
 static uintptr_t virt_to_phys(void* virt) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	long pagesize = sysconf(_SC_PAGESIZE);
 	int fd = check_err(open("/proc/self/pagemap", O_RDONLY), "getting pagemap");
 	// pagemap is an array of pointers for each normal-sized page
@@ -42,6 +43,7 @@ static uint32_t huge_pg_id;
 // not using anonymous hugepages because hugetlbfs can give us multiple pages with contiguous virtual addresses
 // allocating anonymous pages would require manual remapping which is more annoying than handling files
 struct dma_memory memory_allocate_dma(size_t size, bool require_contiguous) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (VFIO_CONTAINER_FILE_DESCRIPTOR != -1) {
 		// VFIO == -1 means that there is no VFIO container set, i.e. VFIO / IOMMU is not activated
 		debug("allocating dma memory via VFIO");
@@ -90,6 +92,7 @@ struct dma_memory memory_allocate_dma(size_t size, bool require_contiguous) {
 // this means a packet can only be sent/received by a single thread
 // entry_size can be 0 to use the default
 struct mempool* memory_allocate_mempool(uint32_t num_entries, uint32_t entry_size) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	entry_size = entry_size ? entry_size : 2048;
 	// require entries that neatly fit into the page size, this makes the memory pool much easier
 	// otherwise our base_addr + index * size formula would be wrong because we can't cross a page-boundary
@@ -121,6 +124,7 @@ struct mempool* memory_allocate_mempool(uint32_t num_entries, uint32_t entry_siz
 }
 
 uint32_t pkt_buf_alloc_batch(struct mempool* mempool, struct pkt_buf* bufs[], uint32_t num_bufs) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (mempool->free_stack_top < num_bufs) {
 		warn("memory pool %p only has %d free bufs, requested %d", mempool, mempool->free_stack_top, num_bufs);
 		num_bufs = mempool->free_stack_top;
@@ -133,22 +137,26 @@ uint32_t pkt_buf_alloc_batch(struct mempool* mempool, struct pkt_buf* bufs[], ui
 }
 
 struct pkt_buf* pkt_buf_alloc(struct mempool* mempool) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct pkt_buf* buf = NULL;
 	pkt_buf_alloc_batch(mempool, &buf, 1);
 	return buf;
 }
 
 void pkt_buf_free(struct pkt_buf* buf) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct mempool* mempool = buf->mempool;
 	mempool->free_stack[mempool->free_stack_top++] = buf->mempool_idx;
 }
 
 // reads the global VFIO container
 int get_vfio_container() {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return VFIO_CONTAINER_FILE_DESCRIPTOR;
 }
 
 // globally sets the VFIO container and returns the set value
 void set_vfio_container(int fd) {
+printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	VFIO_CONTAINER_FILE_DESCRIPTOR = fd;
 }

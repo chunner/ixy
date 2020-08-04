@@ -543,10 +543,9 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	_mm_mfence();
 	// Free sent buffers
 	while (vq->vq_used_last_idx != vq->vring.used->idx) {
-		// info("We can free some buffers: %u != %u", vq->vq_used_last_idx,
-		// vq->vring.used->idx);
+		info("We can free some buffers: %u != %u", vq->vq_used_last_idx, vq->vring.used->idx);
 		struct vring_used_elem* e = vq->vring.used->ring + (vq->vq_used_last_idx % vq->vring.num);
-		// info("e %p, id %u", e, e->id);
+		info("e %p, id %u", e, e->id);
 		struct vring_desc* desc = &vq->vring.desc[e->id];
 		desc->addr = 0;
 		desc->len = 0;
@@ -569,7 +568,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 		if (idx == vq->vring.num) {
 			break;
 		}
-		// info("Found free desc slot at %u (%u)", idx, vq->vring.num);
+		info("Found free desc slot at %u (%u)", idx, vq->vring.num);
 
 		// Update tx counter
 		dev->tx_bytes += buf->size;

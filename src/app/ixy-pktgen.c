@@ -88,7 +88,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 	// tx loop
 	//while (true) {
-	for (int i = 0; i < 16; i++) {
+	for (int i = 0; i < 5; i++) {
 		// we cannot immediately recycle packets, we need to allocate new packets every time
 		// the old packets might still be used by the NIC: tx is async
 		pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);
