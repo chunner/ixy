@@ -32,7 +32,7 @@ static const uint8_t pkt_data[] = {
 
 // calculate a IP/TCP/UDP checksum
 static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
-//printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+//fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (len % 1) error("odd-sized checksums NYI"); // we don't need that
 	uint32_t cs = 0;
 	for (uint32_t i = 0; i < len / 2; i++) {
@@ -45,7 +45,7 @@ static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
 }
 
 static struct mempool* init_mempool() {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	const int NUM_BUFS = 2048;
 	struct mempool* mempool = memory_allocate_mempool(NUM_BUFS, 0);
 	// pre-fill all our packet buffers with some templates that can be modified later
@@ -67,7 +67,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 int main(int argc, char* argv[]) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (argc != 2) {
 		printf("Usage: %s <pci bus id>\n", argv[0]);
 		return 1;
@@ -88,7 +88,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 	// tx loop
 	//while (true) {
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 2; i++) {
 		// we cannot immediately recycle packets, we need to allocate new packets every time
 		// the old packets might still be used by the NIC: tx is async
 		pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);

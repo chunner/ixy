@@ -3,18 +3,18 @@
 #include <stdio.h>
 
 void print_stats(struct device_stats* stats) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	printf("[%s] RX: %zu bytes %zu packets\n", stats->device ? stats->device->pci_addr : "???", stats->rx_bytes, stats->rx_pkts);
 	printf("[%s] TX: %zu bytes %zu packets\n", stats->device ? stats->device->pci_addr : "???", stats->tx_bytes, stats->tx_pkts);
 }
 
 static double diff_mpps(uint64_t pkts_new, uint64_t pkts_old, uint64_t nanos) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return (double) (pkts_new - pkts_old) / 1000000.0 / ((double) nanos / 1000000000.0);
 }
 
 static uint32_t diff_mbit(uint64_t bytes_new, uint64_t bytes_old, uint64_t pkts_new, uint64_t pkts_old, uint64_t nanos) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// take stuff on the wire into account, i.e., the preamble, SFD and IFG (20 bytes)
 	// otherwise it won't show up as 10000 mbit/s with small packets which is confusing
 	return (uint32_t) (((bytes_new - bytes_old) / 1000000.0 / ((double) nanos / 1000000000.0)) * 8
@@ -22,7 +22,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 void print_stats_diff(struct device_stats* stats_new, struct device_stats* stats_old, uint64_t nanos) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	printf("[%s] RX: %d Mbit/s %.2f Mpps\n", stats_new->device ? stats_new->device->pci_addr : "???",
 		diff_mbit(stats_new->rx_bytes, stats_old->rx_bytes, stats_new->rx_pkts, stats_old->rx_pkts, nanos),
 		diff_mpps(stats_new->rx_pkts, stats_old->rx_pkts, nanos)
@@ -37,7 +37,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 // returns a timestamp in nanoseconds
 // based on rdtsc on reasonably configured systems and is hence fast
 uint64_t monotonic_time() {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct timespec timespec;
 	clock_gettime(CLOCK_MONOTONIC, &timespec);
 	return timespec.tv_sec * 1000 * 1000 * 1000 + timespec.tv_nsec;
@@ -45,7 +45,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 // initializes a stat struct and clears the stats on the device
 void stats_init(struct device_stats* stats, struct ixy_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// might require device-specific initialization
 	stats->rx_pkts = 0;
 	stats->tx_pkts = 0;

@@ -62,7 +62,7 @@ struct ixgbe_tx_queue {
  * @param msix_vector the vector to map to the corresponding queue
  */
 static void set_ivar(struct ixgbe_device* dev, int8_t direction, int8_t queue, int8_t msix_vector) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	u32 ivar, index;
 	msix_vector |= IXGBE_IVAR_ALLOC_VAL;
 	index = ((16 * (queue & 1)) + (8 * direction));
@@ -77,7 +77,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param dev The device.
  */
 static void clear_interrupts(struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask
 	set_reg32(dev->addr, IXGBE_EIMC, IXGBE_IRQ_CLEAR_MASK);
 	get_reg32(dev->addr, IXGBE_EICR);
@@ -89,7 +89,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param queue_id The ID of the queue to clear.
  */
 static void clear_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask
 	set_reg32(dev->addr, IXGBE_EIMC, 1 << queue_id);
 	get_reg32(dev->addr, IXGBE_EICR);
@@ -100,7 +100,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param dev The device.
  */
 static void disable_interrupts(struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask to stop from interrupts being generated
 	set_reg32(dev->addr, IXGBE_EIMS, 0x00000000);
 	clear_interrupts(dev);
@@ -112,7 +112,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param queue_id The ID of the queue to disable.
  */
 static void disable_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask to stop from interrupts being generated
 	u32 mask = get_reg32(dev->addr, IXGBE_EIMS);
 	mask &= ~(1 << queue_id);
@@ -127,7 +127,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param queue_id The ID of the queue to enable.
  */
 static void enable_msi_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Step 1: The software driver associates between Tx and Rx interrupt causes and the EICR
 	// register by setting the IVAR[n] registers.
 	set_ivar(dev, 0, queue_id, 0);
@@ -162,7 +162,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param queue_id The ID of the queue to enable.
  */
 static void enable_msix_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Step 1: The software driver associates between interrupt causes and MSI-X vectors and the
 	// throttling timers EITR[n] by programming the IVAR[n] and IVAR_MISC registers.
 	uint32_t gpie = get_reg32(dev->addr, IXGBE_GPIE);
@@ -214,7 +214,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param queue_id The ID of the queue to enable.
  */
 static void enable_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (!dev->ixy.interrupts.interrupts_enabled) {
 		return;
 	}
@@ -236,7 +236,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @param dev The device.
  */
 static void setup_interrupts(struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (!dev->ixy.interrupts.interrupts_enabled) {
 		return;
 	}
@@ -275,7 +275,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 // see section 4.6.4
 static void init_link(struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// should already be set by the eeprom config, maybe we shouldn't override it here to support weirdo nics?
 	set_reg32(dev->addr, IXGBE_AUTOC, (get_reg32(dev->addr, IXGBE_AUTOC) & ~IXGBE_AUTOC_LMS_MASK) | IXGBE_AUTOC_LMS_10G_SERIAL);
 	set_reg32(dev->addr, IXGBE_AUTOC, (get_reg32(dev->addr, IXGBE_AUTOC) & ~IXGBE_AUTOC_10G_PMA_PMD_MASK) | IXGBE_AUTOC_10G_XAUI);
@@ -285,7 +285,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void start_rx_queue(struct ixgbe_device* dev, int queue_id) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	debug("starting rx queue %d", queue_id);
 	struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*)(dev->rx_queues)) + queue_id;
 	// 2048 as pktbuf size is strictly speaking incorrect:
@@ -320,7 +320,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void start_tx_queue(struct ixgbe_device* dev, int queue_id) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	debug("starting tx queue %d", queue_id);
 	struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*)(dev->tx_queues)) + queue_id;
 	if (queue->num_entries & (queue->num_entries - 1)) {
@@ -337,7 +337,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 // see section 4.6.7
 // it looks quite complicated in the data sheet, but it's actually really easy because we don't need fancy features
 static void init_rx(struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// make sure that rx is disabled while re-configuring it
 	// the datasheet also wants us to disable some crypto-offloading related rx paths (but we don't care about them)
 	clear_flags32(dev->addr, IXGBE_RXCTRL, IXGBE_RXCTRL_RXEN);
@@ -397,7 +397,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 // see section 4.6.8
 static void init_tx(struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// crc offload and small packet padding
 	set_flags32(dev->addr, IXGBE_HLREG0, IXGBE_HLREG0_TXCRCEN | IXGBE_HLREG0_TXPADEN);
 
@@ -446,7 +446,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void wait_for_link(const struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	info("Waiting for link...");
 	int32_t max_wait = 10000000; // 10 seconds in us
 	uint32_t poll_interval = 100000; // 10 ms in us
@@ -459,7 +459,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 // see section 4.6.3
 static void reset_and_init(struct ixgbe_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	info("Resetting device %s", dev->ixy.pci_addr);
 
 	// section 4.6.3.1 - disable all interrupts
@@ -524,7 +524,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
  * @return The initialized IXGBE device.
  */
 struct ixy_device* ixgbe_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (getuid()) {
 		warn("Not running as root, this will probably fail");
 	}
@@ -587,7 +587,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 uint32_t ixgbe_get_link_speed(const struct ixy_device* ixy) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
 	uint32_t links = get_reg32(dev->addr, IXGBE_LINKS);
 	if (!(links & IXGBE_LINKS_UP)) {
@@ -606,7 +606,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 void ixgbe_set_promisc(struct ixy_device* ixy, bool enabled) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
 	if (enabled) {
 		info("enabling promisc mode");
@@ -620,7 +620,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 // read stat counters and accumulate in stats
 // stats may be NULL to just reset the counters
 void ixgbe_read_stats(struct ixy_device* ixy, struct device_stats* stats) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
 	uint32_t rx_pkts = get_reg32(dev->addr, IXGBE_GPRC);
 	uint32_t tx_pkts = get_reg32(dev->addr, IXGBE_GPTC);
@@ -642,7 +642,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 // see datasheet section 7.1.9 for an explanation of the rx ring structure
 // tl;dr: we control the tail of the queue, the hardware the head
 uint32_t ixgbe_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
 
 	struct interrupt_queues* interrupt = NULL;
@@ -730,7 +730,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 // huge performance gains possible here by sending packets in batches - writing to TDT for every packet is not efficient
 // returns the number of packets transmitted, will not block when the queue is full
 uint32_t ixgbe_tx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
 	struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*)(dev->tx_queues)) + queue_id;
 	// the descriptor is explained in section 7.2.3.2.4

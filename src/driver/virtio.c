@@ -22,7 +22,7 @@
 static const char* driver_name = "ixy-virtio";
 
 static inline void virtio_legacy_notify_queue(struct virtio_device* dev, uint16_t idx) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 #ifdef PIO
 	write_io16(dev->fd, idx, VIRTIO_PCI_QUEUE_NOTIFY);
 #else
@@ -31,7 +31,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static uint8_t virtio_legacy_get_status(struct virtio_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 #ifdef PIO
 	return read_io8(dev->fd, VIRTIO_PCI_STATUS);
 #else
@@ -40,7 +40,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void virtio_legacy_check_status(struct virtio_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 #ifdef PIO
 	if (read_io8(dev->fd, VIRTIO_PCI_STATUS) == VIRTIO_CONFIG_STATUS_FAILED) {
 #else
@@ -51,7 +51,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static inline size_t virtio_legacy_vring_size(unsigned int num, unsigned long align) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	size_t size;
 
 	size = num * sizeof(struct vring_desc);
@@ -62,7 +62,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static inline void virtio_legacy_vring_init(struct vring* vr, unsigned int num, uint8_t* p, unsigned long align) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	vr->num = num;
 	vr->desc = (struct vring_desc*)p;
 	vr->avail = (struct vring_avail*)(p + num * sizeof(struct vring_desc));
@@ -70,7 +70,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void virtio_legacy_setup_tx_queue(struct virtio_device* dev, uint16_t idx) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (idx != 1 && idx != 2) {
 		error("Can't setup queue %u as Tx queue", idx);
 	}
@@ -140,7 +140,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void virtio_legacy_send_command(struct virtio_device* dev, void* cmd, size_t cmd_len) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct virtqueue* vq = dev->ctrl_queue;
 
 	if (cmd_len < sizeof(struct virtio_net_ctrl_hdr)) {
@@ -228,7 +228,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void virtio_legacy_set_promiscuous(struct virtio_device* dev, bool on) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct {
 		struct virtio_net_ctrl_hdr hdr;
 		uint8_t on;
@@ -245,13 +245,13 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 void virtio_set_promisc(struct ixy_device* ixy, bool enabled) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
 	virtio_legacy_set_promiscuous(dev, enabled);
 }
 
 uint32_t virtio_get_link_speed(const struct ixy_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return 1000;
 }
 
@@ -262,7 +262,7 @@ static const struct virtio_legacy_net_hdr net_hdr = {
 };
 
 static void virtio_legacy_setup_rx_queue(struct virtio_device* dev, uint16_t idx) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (idx != 0) {
 		error("Can't setup Tx queue as Rx");
 	}
@@ -328,7 +328,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 static void virtio_legacy_init(struct virtio_device* dev) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Section 3.1
 	debug("Configuring bar0");
 #ifdef PIO
@@ -394,7 +394,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 // a proper thread-safe implementation would collect per-queue stats
 // and perform a read with relaxed memory ordering here without resetting the stats
 void virtio_read_stats(struct ixy_device* ixy, struct device_stats* stats) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
 	if (stats) {
 		stats->rx_pkts += dev->rx_pkts;
@@ -407,7 +407,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
 
 struct ixy_device* virtio_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (getuid()) {
 		warn("Not running as root, this will probably fail");
 	}
@@ -471,7 +471,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 uint32_t virtio_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
 	struct virtqueue* vq = dev->rx_queue;
 	uint32_t buf_idx;
@@ -536,7 +536,7 @@ printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 }
 
 uint32_t virtio_tx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
 	struct virtqueue* vq = dev->tx_queue;
 

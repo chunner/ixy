@@ -6,7 +6,7 @@
 #include "pci.h"
 
 struct ixy_device* ixy_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout) {
-printf("LOG: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Read PCI configuration space
 	// For VFIO, we could access the config space another way
 	// (VFIO_PCI_CONFIG_REGION_INDEX). This is not needed, though, because

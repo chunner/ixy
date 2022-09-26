@@ -11,7 +11,7 @@
 
 #ifndef NDEBUG
 #define debug(fmt, ...) do {\
-	fprintf(stderr, "[DEBUG] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
+	fprintf(stdout, "[DEBUG] %s:%d %s(): " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__);\
 } while(0)
 #else
 #define debug(fmt, ...) do {} while(0)
