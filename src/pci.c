@@ -9,6 +9,9 @@
 
 #include "log.h"
 
+// QEMU's native Virtio-Net device uses PIO to access BAR1
+//#define PIO
+
 void remove_driver(const char* pci_addr) {
 fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
@@ -43,7 +46,11 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 uint8_t* pci_map_resource(const char* pci_addr) {
 fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
+#ifdef PIO
+	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/resource1", pci_addr);
+#else
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/resource0", pci_addr);
+#endif
 	debug("Mapping PCI resource at %s", path);
 	remove_driver(pci_addr);
 	enable_dma(pci_addr);

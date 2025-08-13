@@ -19,6 +19,9 @@
 #include "libixy-vfio.h"
 /* BIBO add */
 
+// QEMU's native Virtio-Net device uses PIO to access BAR1
+//#define PIO
+
 static const char* driver_name = "ixy-virtio";
 
 static inline void virtio_legacy_notify_queue(struct virtio_device* dev, uint16_t idx) {
@@ -359,7 +362,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 					   (1u << VIRTIO_NET_F_CTRL_RX) /*| (1u<<VIRTIO_NET_F_MQ)*/;
 	debug("Reqd features: %x", required_features);
 	if ((host_features & required_features) != required_features) {
+#ifdef PIO
+#else
 		error("Device does not support required features");
+#endif
 	}
 #ifdef PIO
 	debug("Guest features before negotiation: %x", read_io32(dev->fd, VIRTIO_PCI_GUEST_FEATURES));
@@ -446,8 +452,13 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	/* BIBO add */
 	// Map BAR0 region
         if (dev->ixy.vfio) {
+#ifdef PIO
+                debug("mapping BAR1 region via VFIO...");
+                dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR1_REGION_INDEX);
+#else
                 debug("mapping BAR0 region via VFIO...");
                 dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR0_REGION_INDEX);
+#endif
                 //// initialize interrupts for this device
                 //setup_interrupts(dev);
         } else {
