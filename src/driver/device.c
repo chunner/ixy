@@ -24,6 +24,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		return virtio_init(pci_addr, rx_queues, tx_queues);
 	} else {
 		// Our best guess is to try ixgbe
-		return ixgbe_init(pci_addr, rx_queues, tx_queues, interrupt_timeout);
+		// return ixgbe_init(pci_addr, rx_queues, tx_queues, interrupt_timeout);
+		return cdma_init(pci_addr, rx_queues, tx_queues, interrupt_timeout);
 	}
 }

@@ -6,7 +6,7 @@
 #include "driver/device.h"
 
 // number of packets sent simultaneously to our driver
-static const uint32_t BATCH_SIZE = 64;
+static const uint32_t BATCH_SIZE = 1;  // 64;
 
 // excluding CRC (offloaded by default)
 #define PKT_SIZE 60
@@ -84,22 +84,36 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	uint32_t seq_num = 0;
 
 	// array of bufs sent out in a batch
-	struct pkt_buf* bufs[BATCH_SIZE];
-
+	// struct pkt_buf* bufs[BATCH_SIZE];
+	struct pkt_buf *bufs = pkt_buf_alloc(mempool);
 	// tx loop
 	//while (true) {
 	for (int i = 0; i < 2; i++) {
-		// we cannot immediately recycle packets, we need to allocate new packets every time
-		// the old packets might still be used by the NIC: tx is async
-		pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);
-		for (uint32_t i = 0; i < BATCH_SIZE; i++) {
-			// packets can be modified here, make sure to update the checksum when changing the IP header
-			*(uint32_t*)(bufs[i]->data + PKT_SIZE - 4) = seq_num++;
-		}
-		// the packets could be modified here to generate multiple flows
-		ixy_tx_batch_busy_wait(dev, 0, bufs, BATCH_SIZE);
+		// // we cannot immediately recycle packets, we need to allocate new packets every time
+		// // the old packets might still be used by the NIC: tx is async
+		// pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);
+		// for (uint32_t i = 0; i < BATCH_SIZE; i++) {
+		// 	// packets can be modified here, make sure to update the checksum when changing the IP header
+		// 	*(uint32_t*)(bufs[i]->data + PKT_SIZE - 4) = seq_num++;
+		// }
+		// // the packets could be modified here to generate multiple flows
+		// ixy_tx_batch_busy_wait(dev, 0, bufs, BATCH_SIZE);
 
-		// don't check time for every packet, this yields +10% performance :)
+		// // don't check time for every packet, this yields +10% performance :)
+		// if ((counter++ & 0xFFF) == 0) {
+		// 	uint64_t time = monotonic_time();
+		// 	if (time - last_stats_printed > 1000 * 1000 * 1000) {
+		// 		// every second
+		// 		ixy_read_stats(dev, &stats);
+		// 		print_stats_diff(&stats, &stats_old, time - last_stats_printed);
+		// 		stats_old = stats;
+		// 		last_stats_printed = time;
+		// 	}
+		// }
+		// // track stats
+		*(uint32_t *) (bufs->data + PKT_SIZE - 4) = seq_num++;
+		ixy_tx_batch_busy_wait(dev, 0, bufs, 1);
+
 		if ((counter++ & 0xFFF) == 0) {
 			uint64_t time = monotonic_time();
 			if (time - last_stats_printed > 1000 * 1000 * 1000) {
@@ -112,5 +126,9 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		}
 		// track stats
 	}
+	pkt_buf_free(bufs);
+	mempool_free(mempool);
+	ixy_close(dev);
+	return 0;
 }
 
