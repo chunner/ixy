@@ -89,6 +89,11 @@ int main(int argc, char *argv[]) {
 	// struct pkt_buf* bufs[BATCH_SIZE];
 	struct pkt_buf *bufs = pkt_buf_alloc(mempool);
 	struct pkt_buf *bufs_dst = pkt_buf_alloc(mempool);
+	debug("recource addr %p, phy %lx\n", bufs_dst->data, bufs_dst->buf_addr_phy);
+	debug("destination addr %p, phy %lx\n", bufs->data, bufs->buf_addr_phy);
+
+
+
 	cdma_dev->default_dst_mem.phy = bufs_dst->buf_addr_phy;
 	cdma_dev->default_dst_mem.virt = bufs_dst->data;
 
@@ -117,9 +122,17 @@ int main(int argc, char *argv[]) {
 		// 	}
 		// }
 		// // track stats
-	*(uint32_t *) (bufs->data + PKT_SIZE - 4) = seq_num++;
+	// *(uint32_t *) (bufs->data + PKT_SIZE - 4) = seq_num++;
+	bufs->size = 60;
+	bufs->data[0] = 0xFF;
+	bufs->data[1] = 0xab;
+	bufs_dst->data[0] = 0x00;
+	bufs_dst->data[1] = 0x00;
 	ixy_tx_batch_busy_wait(dev, 0, &bufs, 1);
-
+	// check
+	if (bufs_dst->data[0] != 0xFF || bufs_dst->data[1] != 0xab) {
+		error("DMA transfer failed");
+	}
 	// if ((counter++ & 0xFFF) == 0) {
 	// 	uint64_t time = monotonic_time();
 	// 	if (time - last_stats_printed > 1000 * 1000 * 1000) {
