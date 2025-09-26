@@ -40,7 +40,6 @@
 #define CDMACR_IRQDelay         (0xFF << 24) /* Interrupt Delay Timer */
 
 /* CDMA Status Register (CDMASR) bit definitions */
-#define CDMASR_Halted           (1 << 0)   /* CDMA Halted */
 #define CDMASR_Idle             (1 << 1)   /* CDMA Idle */
 #define CDMASR_SGIncld          (1 << 3)   /* Scatter Gather Included */
 #define CDMASR_DMAIntErr        (1 << 4)   /* DMA Internal Error */
@@ -64,102 +63,63 @@
 #define CDMA_MAX_SIMPLE_TRANSFER_SIZE   0x7FFFFF    /* 8MB - 1 for simple mode */
 #define CDMA_MAX_SG_TRANSFER_SIZE       0x3FFFFFF   /* 64MB - 1 for SG mode */
 
-/* Buffer Descriptor flags for Scatter Gather mode */
-#define BD_CTRL_TXSOF           (1 << 27)  /* Start of Frame */
-#define BD_CTRL_TXEOF           (1 << 26)  /* End of Frame */
-#define BD_STS_COMPLETE_MASK    (1 << 31)  /* Completed */
-#define BD_STS_DEC_ERR_MASK     (1 << 30)  /* Decode Error */
-#define BD_STS_SLV_ERR_MASK     (1 << 29)  /* Slave Error */
-#define BD_STS_INT_ERR_MASK     (1 << 28)  /* Internal Error */
-#define BD_STS_ALL_ERR_MASK     (BD_STS_DEC_ERR_MASK | BD_STS_SLV_ERR_MASK | \
-                                BD_STS_INT_ERR_MASK)
+// /* Buffer Descriptor flags for Scatter Gather mode */
+// #define BD_CTRL_TXSOF           (1 << 27)  /* Start of Frame */
+// #define BD_CTRL_TXEOF           (1 << 26)  /* End of Frame */
+// #define BD_STS_COMPLETE_MASK    (1 << 31)  /* Completed */
+// #define BD_STS_DEC_ERR_MASK     (1 << 30)  /* Decode Error */
+// #define BD_STS_SLV_ERR_MASK     (1 << 29)  /* Slave Error */
+// #define BD_STS_INT_ERR_MASK     (1 << 28)  /* Internal Error */
+// #define BD_STS_ALL_ERR_MASK     (BD_STS_DEC_ERR_MASK | BD_STS_SLV_ERR_MASK | 
+//                                 BD_STS_INT_ERR_MASK)
 
-/**
- * AXI CDMA Buffer Descriptor structure for Scatter Gather mode
- * Must be aligned to cache line boundary (typically 64 bytes)
- */
-struct axi_cdma_bd {
-    uint32_t next_desc;         /* Next Descriptor Pointer (lower 32 bits) */
-    uint32_t next_desc_msb;     /* Next Descriptor Pointer (upper 32 bits) */
-    uint32_t src_addr;          /* Source Address (lower 32 bits) */
-    uint32_t src_addr_msb;      /* Source Address (upper 32 bits) */
-    uint32_t dest_addr;         /* Destination Address (lower 32 bits) */  
-    uint32_t dest_addr_msb;     /* Destination Address (upper 32 bits) */
-    uint32_t control;           /* Control field */
-    uint32_t status;            /* Status field */
-    uint32_t reserved[8];       /* Reserved for alignment to 64 bytes */
-} __attribute__((packed, aligned(64)));
+// /**
+//  * AXI CDMA Buffer Descriptor structure for Scatter Gather mode
+//  * Must be aligned to cache line boundary (typically 64 bytes)
+//  */
+// struct axi_cdma_bd {
+//     uint32_t next_desc;         /* Next Descriptor Pointer (lower 32 bits) */
+//     uint32_t next_desc_msb;     /* Next Descriptor Pointer (upper 32 bits) */
+//     uint32_t src_addr;          /* Source Address (lower 32 bits) */
+//     uint32_t src_addr_msb;      /* Source Address (upper 32 bits) */
+//     uint32_t dest_addr;         /* Destination Address (lower 32 bits) */  
+//     uint32_t dest_addr_msb;     /* Destination Address (upper 32 bits) */
+//     uint32_t control;           /* Control field */
+//     uint32_t status;            /* Status field */
+//     uint32_t reserved[8];       /* Reserved for alignment to 64 bytes */
+// } __attribute__((packed, aligned(64)));
 
-/**
- * Simple transfer descriptor for non-SG mode
- */
-struct axi_cdma_simple_transfer {
-    uint64_t src_addr;          /* Source address (64-bit) */
-    uint64_t dest_addr;         /* Destination address (64-bit) */
-    uint32_t length;            /* Transfer length in bytes */
-    uint32_t flags;             /* Transfer flags */
-};
+// /**
+//  * Simple transfer descriptor for non-SG mode
+//  */
+// struct axi_cdma_simple_transfer {
+//     uint64_t src_addr;          /* Source address (64-bit) */
+//     uint64_t dest_addr;         /* Destination address (64-bit) */
+//     uint32_t length;            /* Transfer length in bytes */
+//     uint32_t flags;             /* Transfer flags */
+// };
 
-/**
- * CDMA device configuration structure
- */
-struct axi_cdma_config {
-    uint32_t max_burst_len;     /* Maximum burst length */
-    uint32_t data_width;        /* Data width (32, 64, 128, 256, 512, 1024 bits) */
-    uint8_t  addr_width;        /* Address width (32 or 64 bits) */
-    bool     sg_enabled;        /* Scatter Gather support */
-    bool     keyhole_read;      /* Key hole read support */
-    bool     keyhole_write;     /* Key hole write support */
-    uint8_t  max_outstanding;   /* Maximum outstanding transfers */
-};
-
-/**
- * CDMA queue structure for managing transfers
- */
-struct axi_cdma_queue {
-    struct axi_cdma_bd* bd_ring;        /* Buffer descriptor ring */
-    uint32_t bd_ring_phys_addr;         /* Physical address of BD ring */
-    uint32_t bd_ring_size;              /* Number of BDs in ring */
-    uint32_t bd_head;                   /* Head index */
-    uint32_t bd_tail;                   /* Tail index */
-    uint32_t bd_free_count;             /* Free BD count */
-    struct mempool* mempool;            /* Memory pool for buffers */
-};
+// /**
+//  * CDMA queue structure for managing transfers
+//  */
+// struct axi_cdma_queue {
+//     struct axi_cdma_bd* bd_ring;        /* Buffer descriptor ring */
+//     uint32_t bd_ring_phys_addr;         /* Physical address of BD ring */
+//     uint32_t bd_ring_size;              /* Number of BDs in ring */
+//     uint32_t bd_head;                   /* Head index */
+//     uint32_t bd_tail;                   /* Tail index */
+//     uint32_t bd_free_count;             /* Free BD count */
+//     struct mempool* mempool;            /* Memory pool for buffers */
+// };
 
 /**
  * Main CDMA device structure
  */
-struct cdma_device {
-    struct ixy_device ixy;              /* Base ixy device */
-    
-    /* Hardware resources */
-    void* base_addr;                    /* BAR0 mapped base address */
-    uint16_t device_id;                 /* PCI device ID */
-    
-    /* Device configuration */
-    struct axi_cdma_config config;      /* Device configuration */
-
-    // struct dma_memory dma_mem;
-    struct dma_memory default_src_mem; /* Default source memory */
-    struct dma_memory default_dst_mem; /* Default destination memory */
-
-    /* Queues */
-    struct axi_cdma_queue* tx_queue;    /* Transmit queue */
-    struct axi_cdma_queue* rx_queue;    /* Receive queue */
-    
-    /* Statistics */
-    uint64_t tx_packets;                /* Transmitted packets */
-    uint64_t rx_packets;                /* Received packets */
-    uint64_t tx_bytes;                  /* Transmitted bytes */
-    uint64_t rx_bytes;                  /* Received bytes */
-    uint64_t errors;                    /* Error count */
-};
-
 // /* Helper macros for register access */
-// #define cdma_read_reg(dev, offset) \
+// #define cdma_read_reg(dev, offset) 
 //     (*(volatile uint32_t*)((uint8_t*)(dev)->base_addr + (offset)))
 
-// #define cdma_write_reg(dev, offset, value) \
+// #define cdma_write_reg(dev, offset, value) 
 //     (*(volatile uint32_t*)((uint8_t*)(dev)->base_addr + (offset)) = (value))
 
 // /* Utility functions for 64-bit address handling */
@@ -199,11 +159,10 @@ struct cdma_device {
 //     return (cdma_get_status(dev) & CDMASR_ALL_ERR_MASK) != 0;
 // }
 
-/* Transfer alignment requirements */
-#define CDMA_ALIGNMENT_BYTES    64      /* Recommended alignment for optimal performance */
-#define CDMA_MIN_ALIGNMENT      4       /* Minimum required alignment */
+// /* Transfer alignment requirements */
+// #define CDMA_ALIGNMENT_BYTES    64      /* Recommended alignment for optimal performance */
+// #define CDMA_MIN_ALIGNMENT      4       /* Minimum required alignment */
 
 /* Convert ixy_device to cdma_device */
-#define IXY_TO_CDMA(ixy_device) container_of(ixy_device, struct cdma_device, ixy);
 
 #endif /* _AXI_CDMA_TYPE_H_ */

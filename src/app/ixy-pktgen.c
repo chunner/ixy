@@ -4,9 +4,10 @@
 #include "log.h"
 #include "memory.h"
 #include "driver/device.h"
+#include "driver/cdma.h"
 
 // number of packets sent simultaneously to our driver
-static const uint32_t BATCH_SIZE = 1;  // 64;
+// static const uint32_t BATCH_SIZE = 1;  // 64;
 
 // excluding CRC (offloaded by default)
 #define PKT_SIZE 60
@@ -31,12 +32,12 @@ static const uint8_t pkt_data[] = {
 };
 
 // calculate a IP/TCP/UDP checksum
-static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
-//fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static uint16_t calc_ip_checksum(uint8_t *data, uint32_t len) {
+	//fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (len % 1) error("odd-sized checksums NYI"); // we don't need that
 	uint32_t cs = 0;
 	for (uint32_t i = 0; i < len / 2; i++) {
-		cs += ((uint16_t*)data)[i];
+		cs += ((uint16_t *) data)[i];
 		if (cs > 0xFFFF) {
 			cs = (cs & 0xFFFF) + 1; // 16 bit one's complement
 		}
@@ -44,18 +45,18 @@ static uint16_t calc_ip_checksum(uint8_t* data, uint32_t len) {
 	return ~((uint16_t) cs);
 }
 
-static struct mempool* init_mempool() {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static struct mempool *init_mempool() {
+	fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	const int NUM_BUFS = 2048;
-	struct mempool* mempool = memory_allocate_mempool(NUM_BUFS, 0);
+	struct mempool *mempool = memory_allocate_mempool(NUM_BUFS, 0);
 	// pre-fill all our packet buffers with some templates that can be modified later
 	// we have to do it like this because sending is async in the hardware; we cannot re-use a buffer immediately
-	struct pkt_buf* bufs[NUM_BUFS];
+	struct pkt_buf *bufs[NUM_BUFS];
 	for (int buf_id = 0; buf_id < NUM_BUFS; buf_id++) {
-		struct pkt_buf* buf = pkt_buf_alloc(mempool);
+		struct pkt_buf *buf = pkt_buf_alloc(mempool);
 		buf->size = PKT_SIZE;
 		memcpy(buf->data, pkt_data, sizeof(pkt_data));
-		*(uint16_t*) (buf->data + 24) = calc_ip_checksum(buf->data + 14, 20);
+		*(uint16_t *) (buf->data + 24) = calc_ip_checksum(buf->data + 14, 20);
 		bufs[buf_id] = buf;
 	}
 	// return them all to the mempool, all future allocations will return bufs with the data set above
@@ -66,15 +67,16 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	return mempool;
 }
 
-int main(int argc, char* argv[]) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+int main(int argc, char *argv[]) {
+	fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (argc != 2) {
 		printf("Usage: %s <pci bus id>\n", argv[0]);
 		return 1;
 	}
 
-	struct ixy_device* dev = ixy_init(argv[1], 1, 1, 0);
-	struct mempool* mempool = init_mempool();
+	struct ixy_device *dev = ixy_init(argv[1], 1, 1, 0);
+	struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
+	struct mempool *mempool = init_mempool();
 
 	uint64_t last_stats_printed = monotonic_time();
 	uint64_t counter = 0;
@@ -86,9 +88,13 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	// array of bufs sent out in a batch
 	// struct pkt_buf* bufs[BATCH_SIZE];
 	struct pkt_buf *bufs = pkt_buf_alloc(mempool);
+	struct pkt_buf *bufs_dst = pkt_buf_alloc(mempool);
+	cdma_dev->default_dst_mem.phy = bufs_dst->buf_addr_phy;
+	cdma_dev->default_dst_mem.virt = bufs_dst->data;
+
 	// tx loop
 	//while (true) {
-	for (int i = 0; i < 2; i++) {
+	// for (int i = 0; i < 2; i++) {
 		// // we cannot immediately recycle packets, we need to allocate new packets every time
 		// // the old packets might still be used by the NIC: tx is async
 		// pkt_buf_alloc_batch(mempool, bufs, BATCH_SIZE);
@@ -111,24 +117,22 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		// 	}
 		// }
 		// // track stats
-		*(uint32_t *) (bufs->data + PKT_SIZE - 4) = seq_num++;
-		ixy_tx_batch_busy_wait(dev, 0, bufs, 1);
+	*(uint32_t *) (bufs->data + PKT_SIZE - 4) = seq_num++;
+	ixy_tx_batch_busy_wait(dev, 0, &bufs, 1);
 
-		if ((counter++ & 0xFFF) == 0) {
-			uint64_t time = monotonic_time();
-			if (time - last_stats_printed > 1000 * 1000 * 1000) {
-				// every second
-				ixy_read_stats(dev, &stats);
-				print_stats_diff(&stats, &stats_old, time - last_stats_printed);
-				stats_old = stats;
-				last_stats_printed = time;
-			}
+	if ((counter++ & 0xFFF) == 0) {
+		uint64_t time = monotonic_time();
+		if (time - last_stats_printed > 1000 * 1000 * 1000) {
+			// every second
+			ixy_read_stats(dev, &stats);
+			print_stats_diff(&stats, &stats_old, time - last_stats_printed);
+			stats_old = stats;
+			last_stats_printed = time;
 		}
-		// track stats
 	}
+	// track stats
+// }
 	pkt_buf_free(bufs);
-	mempool_free(mempool);
-	ixy_close(dev);
 	return 0;
 }
 

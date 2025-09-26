@@ -13,7 +13,7 @@
 #include "memory.h"
 #include "pci.h"
 #include "cdma_type.h"
-#include "virtio_type.h"
+#include "cdma.h"
 #include "libixy-vfio.h"
 
 static const char *driver_name = "ixy-cdma";
@@ -22,8 +22,6 @@ uint32_t cmda_tx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf
 
 static void cdma_device_init(struct cdma_device *dev) {
     fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-    // Host Memory Alloc
-
     // 1. Soft Reset for CDMA 
     debug("Resetting CDMA device");
     set_reg32(dev->base_addr, CDMACR, CDMACR_RESET);
@@ -46,22 +44,11 @@ static void cdma_device_init(struct cdma_device *dev) {
         control |= CDMACR_KeyHole_Write;
     }
 
-    // enalbe interrupts (optional)
-    // control |= CDMACR_IOC_IrqEn;
-    // control |= CDMACR_Err_IrqEn;
-    // control |= CDMACR_Dly_IrqEn;
-
     set_reg32(dev->base_addr, CDMACR, control);
     debug("CDMA control register set to 0x%08x", control);
 
     _mm_mfence();
 
-    // 3. Allocate DMA Memory
-    size_t default_mem_size = 0x100000; // 1 MB
-    dev->default_src_mem = memory_allocate_dma(default_mem_size, true);
-    dev->default_dst_mem = memory_allocate_dma(default_mem_size, true);
-
-    _mm_mfence();
     info("Setup complete");
 
 }
@@ -94,7 +81,7 @@ struct ixy_device *cdma_init(const char *pci_addr, uint16_t rx_queues, uint16_t 
     dev->config.max_burst_len = 16; // Max burst length of 16
     dev->config.addr_width = 64; // 64-bit addressing
     dev->config.data_width = 32; // 32-bit data width
-    dev->config.sg_enabled = true; // Scatter-Gather enabled
+    dev->config.sg_enabled = false; // Scatter-Gather enabled
     dev->config.keyhole_read = false; // No keyhole read
     dev->config.keyhole_write = false; // No keyhole write
     dev->config.max_outstanding = 1; // Max 1 outstanding transfer
@@ -179,25 +166,25 @@ static int cdma_simple_transfer(struct cdma_device *dev, uint64_t src_addr, uint
 
 // only supports single queue (queue_id 0) and single buffer per batch
 uint32_t cmda_tx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+    fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
     // Validate parameters
-    if (queue_id != 0) error("Invalid queue ID %d for CDMA device", queue_id);return 0;
+    if (queue_id != 0) { error("Invalid queue ID %d for CDMA device", queue_id);return 0; }
     if (num_bufs == 0) return 0;
-    if (num_bufs > 1) error("CDMA device supports only single buffer per batch, truncating to 1"); return 0;
+    if (num_bufs > 1) { error("CDMA device supports only single buffer per batch, truncating to 1"); return 0; }
 
     struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
 
     struct pkt_buf *buf = bufs[0];
 
     uint64_t src_addr = buf->buf_addr_phy; // Source address in device memory
-    uint64_t dst_addr = buf->buf_addr_phy; // Destination address in host memory
+    uint64_t dst_addr = cdma_dev->default_dst_mem.phy;
 
     cdma_simple_transfer(cdma_dev, src_addr, dst_addr, buf->size);
     // Return number of packets received (1 in this case)
     return 1;
 }
 uint32_t cmda_rx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+    fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
     error("CDMA device does not support RX");
     return 0;
 }

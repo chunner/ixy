@@ -3,6 +3,7 @@
 #include "device.h"
 #include "driver/ixgbe.h"
 #include "driver/virtio.h"
+#include "driver/cdma.h"
 #include "pci.h"
 
 struct ixy_device* ixy_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout) {
@@ -25,6 +26,6 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	} else {
 		// Our best guess is to try ixgbe
 		// return ixgbe_init(pci_addr, rx_queues, tx_queues, interrupt_timeout);
-		return cdma_init(pci_addr, rx_queues, tx_queues, interrupt_timeout);
+		return cdma_init(pci_addr, rx_queues, tx_queues);
 	}
 }
