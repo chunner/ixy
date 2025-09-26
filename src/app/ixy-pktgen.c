@@ -78,11 +78,11 @@ int main(int argc, char *argv[]) {
 	struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
 	struct mempool *mempool = init_mempool();
 
-	uint64_t last_stats_printed = monotonic_time();
-	uint64_t counter = 0;
-	struct device_stats stats_old, stats;
-	stats_init(&stats, dev);
-	stats_init(&stats_old, dev);
+	// uint64_t last_stats_printed = monotonic_time();
+	// uint64_t counter = 0;
+	// struct device_stats stats_old, stats;
+	// stats_init(&stats, dev);
+	// stats_init(&stats_old, dev);
 	uint32_t seq_num = 0;
 
 	// array of bufs sent out in a batch
@@ -120,16 +120,16 @@ int main(int argc, char *argv[]) {
 	*(uint32_t *) (bufs->data + PKT_SIZE - 4) = seq_num++;
 	ixy_tx_batch_busy_wait(dev, 0, &bufs, 1);
 
-	if ((counter++ & 0xFFF) == 0) {
-		uint64_t time = monotonic_time();
-		if (time - last_stats_printed > 1000 * 1000 * 1000) {
-			// every second
-			ixy_read_stats(dev, &stats);
-			print_stats_diff(&stats, &stats_old, time - last_stats_printed);
-			stats_old = stats;
-			last_stats_printed = time;
-		}
-	}
+	// if ((counter++ & 0xFFF) == 0) {
+	// 	uint64_t time = monotonic_time();
+	// 	if (time - last_stats_printed > 1000 * 1000 * 1000) {
+	// 		// every second
+	// 		ixy_read_stats(dev, &stats);
+	// 		print_stats_diff(&stats, &stats_old, time - last_stats_printed);
+	// 		stats_old = stats;
+	// 		last_stats_printed = time;
+	// 	}
+	// }
 	// track stats
 // }
 	pkt_buf_free(bufs);
