@@ -60,7 +60,7 @@
                                 CDMASR_SGSlvErr | CDMASR_SGDecErr)
 
 /* Maximum transfer sizes */
-#define CDMA_MAX_SIMPLE_TRANSFER_SIZE   0x7FFFFF    /* 8MB - 1 for simple mode */
+#define CDMA_MAX_SIMPLE_TRANSFER_SIZE   0x3FFFFFF   /* 64MB - 1 for simple mode */
 #define CDMA_MAX_SG_TRANSFER_SIZE       0x3FFFFFF   /* 64MB - 1 for SG mode */
 
 // /* Buffer Descriptor flags for Scatter Gather mode */

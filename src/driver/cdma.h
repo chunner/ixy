@@ -46,4 +46,6 @@ struct cdma_device {
 
 struct ixy_device *cdma_init(const char *pci_addr, uint16_t rx_queues, uint16_t tx_queues);
 uint32_t cmda_tx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs);
+
+int cdma_simple_transfer(struct cdma_device *dev, uint64_t src_addr, uint64_t dst_addr, uint32_t length);
 #endif // CDMA_H

@@ -105,7 +105,7 @@ struct ixy_device *cdma_init(const char *pci_addr, uint16_t rx_queues, uint16_t 
 
 
 
-static int cdma_simple_transfer(struct cdma_device *dev, uint64_t src_addr, uint64_t dst_addr, uint32_t length) {
+int cdma_simple_transfer(struct cdma_device *dev, uint64_t src_addr, uint64_t dst_addr, uint32_t length) {
     fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 
     // 1. Check Parameters
