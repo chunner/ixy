@@ -5,6 +5,7 @@
 #include "memory.h"
 #include "driver/device.h"
 #include "driver/cdma.h"
+#include "ixy-pktgen.h"
 
 // number of packets sent simultaneously to our driver
 // static const uint32_t BATCH_SIZE = 1;  // 64;
@@ -116,3 +117,16 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+
+int data_mover(const char* pci_addr, uint64_t src_addr, uint64_t dst_addr, uint32_t size) {
+	fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct ixy_device *dev = ixy_init(pci_addr, 1, 1, 0);
+	struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
+
+
+	uint64_t src_phy = virt_to_phys((void *) src_addr);
+	uint64_t dst_phy = virt_to_phys((void *) dst_addr);
+	cdma_simple_transfer(cdma_dev, src_phy, dst_phy, size);
+
+	return 0;
+}

@@ -167,20 +167,20 @@ int cdma_simple_transfer(struct cdma_device *dev, uint64_t src_addr, uint64_t ds
 // only supports single queue (queue_id 0) and single buffer per batch
 uint32_t cmda_tx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
     fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-    // Validate parameters
-    if (queue_id != 0) { error("Invalid queue ID %d for CDMA device", queue_id);return 0; }
-    if (num_bufs == 0) return 0;
-    if (num_bufs > 1) { error("CDMA device supports only single buffer per batch, truncating to 1"); return 0; }
+    // // Validate parameters
+    // if (queue_id != 0) { error("Invalid queue ID %d for CDMA device", queue_id);return 0; }
+    // if (num_bufs == 0) return 0;
+    // if (num_bufs > 1) { error("CDMA device supports only single buffer per batch, truncating to 1"); return 0; }
 
-    struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
+    // struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
 
-    struct pkt_buf *buf = bufs[0];
+    // struct pkt_buf *buf = bufs[0];
 
-    uint64_t src_addr = buf->buf_addr_phy; // Source address in device memory
-    uint64_t dst_addr = cdma_dev->default_dst_mem.phy;
+    // uint64_t src_addr = buf->buf_addr_phy; // Source address in device memory
+    // uint64_t dst_addr = cdma_dev->default_dst_mem.phy;
 
-    cdma_simple_transfer(cdma_dev, src_addr, dst_addr, buf->size);
-    // Return number of packets received (1 in this case)
+    // cdma_simple_transfer(cdma_dev, src_addr, dst_addr, buf->size);
+    // // Return number of packets received (1 in this case)
     return 1;
 }
 uint32_t cmda_rx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {

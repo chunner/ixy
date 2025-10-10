@@ -57,4 +57,6 @@ int get_vfio_container();
 // globally sets the VFIO container
 void set_vfio_container(int fd);
 
+uintptr_t virt_to_phys(void *virt);
+
 #endif //IXY_MEMORY_H

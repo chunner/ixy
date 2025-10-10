@@ -20,7 +20,7 @@
 volatile int VFIO_CONTAINER_FILE_DESCRIPTOR = -1;
 
 // translate a virtual address to a physical one via /proc/self/pagemap
-static uintptr_t virt_to_phys(void* virt) {
+uintptr_t virt_to_phys(void* virt) {
 fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	long pagesize = sysconf(_SC_PAGESIZE);
 	int fd = check_err(open("/proc/self/pagemap", O_RDONLY), "getting pagemap");
