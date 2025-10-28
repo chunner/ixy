@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
 	// ixy_tx_batch_busy_wait(dev, 0, &bufs, 1);
 	cdma_simple_transfer(cdma_dev, bufs.phy, bufs_dst.phy, PKT_SIZE);
 	// check
-	debug ("After CDMA transfer:\n");
+	debug("After CDMA transfer:\n");
 	debug("source , %x, %x", *(uint32_t *) (bufs.virt), *(uint32_t *) (bufs.virt + PKT_SIZE - 4));
 	debug("destination , %x, %x", *(uint32_t *) (bufs_dst.virt), *(uint32_t *) (bufs_dst.virt + PKT_SIZE - 4));
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-int data_mover(const char* pci_addr, uint64_t src_addr, uint64_t dst_addr, uint32_t size) {
+int data_mover(const char *pci_addr, uint64_t src_addr, uint64_t dst_addr, uint32_t size) {
 	fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct ixy_device *dev = ixy_init(pci_addr, 1, 1, 0);
 	struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
@@ -127,6 +127,20 @@ int data_mover(const char* pci_addr, uint64_t src_addr, uint64_t dst_addr, uint3
 	uint64_t src_phy = virt_to_phys((void *) src_addr);
 	uint64_t dst_phy = virt_to_phys((void *) dst_addr);
 	cdma_simple_transfer(cdma_dev, src_phy, dst_phy, size);
+
+	return 0;
+}
+int execute(const char *pci_addr, uint64_t src_addr, uint64_t dst_addr, uint32_t size) {
+	fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct ixy_device *dev = ixy_init(pci_addr, 1, 1, 0);
+	struct cdma_device *cdma_dev = IXY_TO_CDMA(dev);
+
+
+	uint64_t src_phy = virt_to_phys((void *) src_addr);
+	uint64_t role_phy = (void *) 0x8000000000000000;
+	uint64_t dst_phy = virt_to_phys((void *) dst_addr);
+	cdma_simple_transfer(cdma_dev, src_phy, role_phy, size);
+	cdma_simple_transfer(cdma_dev, role_phy, dst_phy, size);
 
 	return 0;
 }

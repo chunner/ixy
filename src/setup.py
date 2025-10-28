@@ -3,7 +3,7 @@ import pybind11
 
 ext_modules = [
     Extension(
-        'cdma_mover',
+        'ixy_operator',
         sources=['wrapper.cpp', 
                  'app/ixy-pktgen.c', 
                  'driver/cdma.c', 
@@ -21,7 +21,7 @@ ext_modules = [
 ]
 
 setup(
-    name='cdma_mover',
+    name='ixy_operator',
     version='1.0',
     ext_modules=ext_modules,
 )
