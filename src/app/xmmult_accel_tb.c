@@ -3,7 +3,7 @@
 #include "driver/xmmult_accel.h"
 int main(int argc, char *argv[]) {
     XMmult_accel *InstancePtr = xmmult_accel_device_init(argv[1]);
-    int N = 64, K = 768, M = 768;
+    int N = 6, K = 8, M = 10;
     int A[N][K], B[K][M], C[N][M];
     // Initialize matrices A and B
     for (int i = 0; i < N; i++) {
