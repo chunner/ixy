@@ -17,8 +17,9 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-set(SOURCE_COMMON src/pci.c src/memory.c src/stats.c src/interrupts.c src/driver/device.c src/driver/ixgbe.c src/driver/virtio.c src/driver/cdma.c src/libixy-vfio.c)
+set(SOURCE_COMMON src/pci.c src/memory.c src/stats.c src/interrupts.c src/driver/device.c src/driver/ixgbe.c src/driver/virtio.c src/driver/cdma.c src/libixy-vfio.c src/driver/xmmult_accel.c src/driver/xmmult_accel_tools.c)
 
+add_executable(xmmult_accel_tb src/app/xmmult_accel_tb.c ${SOURCE_COMMON})
 add_executable(ixy-pktgen src/app/ixy-pktgen.c ${SOURCE_COMMON})
 add_executable(ixy-fwd src/app/ixy-fwd.c ${SOURCE_COMMON})
 add_executable(ixy-pcap src/app/ixy-pcap.c ${SOURCE_COMMON})

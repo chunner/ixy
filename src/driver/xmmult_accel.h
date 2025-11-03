@@ -122,6 +122,7 @@ extern "C" {
     u32 XMmult_accel_InterruptGetEnabled(XMmult_accel *InstancePtr);
     u32 XMmult_accel_InterruptGetStatus(XMmult_accel *InstancePtr);
 
+    XMmult_accel *xmmult_accel_device_init(const char *pci_addr);
     int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uintptr_t B, uintptr_t C,
         int N, int K, int M, int updateA);
 

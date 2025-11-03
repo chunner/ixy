@@ -14,12 +14,11 @@
 #include "xmmult_accel.h"
 #include "xmmult_accel_type.h"
 
-static const char *driver_name = "xmmult_accel";
 
-static void xmmult_accel_device_init(const char *pci_addr) {
+XMmult_accel *xmmult_accel_device_init(const char *pci_addr) {
     remove_driver(pci_addr);
     XMmult_accel *InstancePtr = calloc(1, sizeof(XMmult_accel));
-    InstancePtr->Control_BaseAddress = pci_map_resource(pci_addr);
+    InstancePtr->Control_BaseAddress = (u64) pci_map_resource(pci_addr);
     InstancePtr->IsReady = XIL_COMPONENT_IS_READY;
     return InstancePtr;
 }
