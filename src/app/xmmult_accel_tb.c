@@ -3,10 +3,14 @@
 #include "memory.h"
 
 #include "driver/xmmult_accel.h"
+#define DTYPE_IN int8_t
+#define DTYPE_OUT int32_t
+
 int main(int argc, char *argv[]) {
     XMmult_accel *InstancePtr = xmmult_accel_device_init(argv[1]);
     int N = 6, K = 8, M = 10;
-    int A[N][K], B[K][M], C[N][M];
+    DTYPE_IN A[N][K], B[K][M];
+    DTYPE_OUT C[N][M];
     // Initialize matrices A and B
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < K; j++) {
