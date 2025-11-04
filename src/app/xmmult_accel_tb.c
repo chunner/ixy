@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <log.h>
 
 #include "driver/xmmult_accel.h"
 int main(int argc, char *argv[]) {
@@ -16,6 +17,11 @@ int main(int argc, char *argv[]) {
             B[i][j] = i - j;
         }
     }
+    // debug info
+    debug("debug info from testbench:\n");
+    debug("Pointer A: %p\n", A);
+    debug("Pointer B: %p\n", B);
+    debug("Pointer C: %p\n", C);
     // Perform matrix multiplication using the accelerator
     xmmult_accel_execute(InstancePtr, (uintptr_t) A, (uintptr_t) B, (uintptr_t) C, N, K, M, 1);
     // Check results
