@@ -56,4 +56,26 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Matrix multiplication completed with %d errors.\n", errors);
     }
+    // printf A, B, C beautifully
+    printf("Matrix A:\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < K; j++) {
+            printf("%4d ", A[i][j]);
+        }
+        printf("\n");
+    }
+    printf("Matrix B:\n");
+    for (int i = 0; i < K; i++) {
+        for (int j = 0; j < M; j++) {
+            printf("%4d ", B[i][j]);
+        }
+        printf("\n");
+    }
+    printf("Matrix C:\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            printf("%6d ", C[i][j]);
+        }
+        printf("\n");
+    }
 }
