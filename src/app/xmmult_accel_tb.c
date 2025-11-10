@@ -28,13 +28,9 @@ int main(int argc, char *argv[]) {
     debug("Pointer B: %p\n", B);
     debug("Pointer C: %p\n", C);
     // Perform matrix multiplication using the accelerator
-    uintptr_t A_phy = virt_to_phys((uintptr_t) A);
-    uintptr_t B_phy = virt_to_phys((uintptr_t) B);
-    uintptr_t C_phy = virt_to_phys((uintptr_t) C);
-    debug("Physical Address A: %p\n", A_phy);
-    debug("Physical Address B: %p\n", B_phy);
-    debug("Physical Address C: %p\n", C_phy);
-    xmmult_accel_execute(InstancePtr, A_phy, B_phy, C_phy, N, K, M, 1);
+
+
+    xmmult_accel_execute(InstancePtr, (uintptr_t) A, (uintptr_t) B, (uintptr_t) C, N, K, M, 1);
     // Check results
     int errors = 0;
     for (int i = 0; i < N; i++) {

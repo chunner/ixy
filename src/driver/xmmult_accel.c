@@ -38,6 +38,12 @@ int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uin
     debug("  M: %d\n", M);
     debug("  updateA: %d\n", updateA);
 
+    uintptr_t A_phy = virt_to_phys(A);
+    uintptr_t B_phy = virt_to_phys(B);
+    uintptr_t C_phy = virt_to_phys(C);
+    debug("Physical Address A: %p\n", A_phy);
+    debug("Physical Address B: %p\n", B_phy);
+    debug("Physical Address C: %p\n", C_phy);
     // 1. Wait for Idle
     while (XMmult_accel_IsIdle(InstancePtr) == 0);
 
@@ -49,9 +55,9 @@ int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uin
     XMmult_accel_Set_update_A(InstancePtr, updateA);
 
     // 3. Set pointers
-    XMmult_accel_Set_A(InstancePtr, (uintptr_t) A);
-    XMmult_accel_Set_B(InstancePtr, (uintptr_t) B);
-    XMmult_accel_Set_C(InstancePtr, (uintptr_t) C);
+    XMmult_accel_Set_A(InstancePtr, (uintptr_t) A_phy);
+    XMmult_accel_Set_B(InstancePtr, (uintptr_t) B_phy);
+    XMmult_accel_Set_C(InstancePtr, (uintptr_t) C_phy);
 
     _mm_mfence();
 

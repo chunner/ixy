@@ -3,11 +3,13 @@ import pybind11
 
 ext_modules = [
     Extension(
-        'ixy_operator',
+        'accel_ip',
         sources=['wrapper.cpp', 
                  'app/ixy-pktgen.c', 
                  'driver/cdma.c', 
                  'driver/device.c',
+                 'driver/xmmult_accel.c',
+                 'driver/xmmult_accel_tools.c',
                  'interrupts.c',
                  'memory.c',
                  'pci.c',
@@ -17,11 +19,12 @@ ext_modules = [
                       pybind11.get_include(), 
                       '.'],
         language='c++',
+        define_macros=[('__linux__', '1')],
     )
 ]
 
 setup(
-    name='ixy_operator',
+    name='accel_ip',
     version='1.0',
     ext_modules=ext_modules,
 )
