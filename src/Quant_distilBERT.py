@@ -100,6 +100,7 @@ class FPGAQuantizedLinear(torch.nn.Module):
         self.weight_zero_point = quantized_linear.weight().q_zero_point()
         # Transpose so that the weight shape becomes (in_features, out_features)
         self.weight_int8 = self.weight_int8_tensor.cpu().numpy().T  # shape: (hidden_size, hidden_size)
+        self.weight_int8 = np.ascontiguousarray(self.weight_int8)  # Ensure contiguous layout
         
         # Effective scale: multiplication of activation scale and weight scale.
         self.effective_scale = self.act_scale * self.weight_scale
@@ -139,13 +140,16 @@ class FPGAQuantizedLinear(torch.nn.Module):
 
         # Convert to a NumPy int8 array.
         x_np = x_int8.cpu().numpy().astype(np.int8)
+        x_np = np.ascontiguousarray(x_np)  # Ensure contiguous layout
         
         # Convert input activation and weight to PYNQ buffers.
         A_buf = x_np.ctypes.data
         W_buf = self.weight_int8.ctypes.data
         # Allocate an output buffer for the int32 result (shape: (N, hidden_size))
         #C_buf = allocate((N, self.hidden_size), dtype=np.int32)
-        C_buf = np.empty((N, self.hidden_size), dtype=np.int32).ctypes.data
+        C_np = np.empty((N, self.hidden_size), dtype=np.int32)
+        C_np = np.ascontiguousarray(C_np)  # Ensure contiguous layout
+        C_buf = C_np.ctypes.data
         
         # Call the FPGA accelerator:
         # Instead of hardcoding update_A=1, we now use self.update_A:
