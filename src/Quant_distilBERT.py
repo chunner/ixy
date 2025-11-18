@@ -1,15 +1,11 @@
-# %%
-# from pynq import Overlay
-# overlay = Overlay("/home/ubuntu/workspace/pynq_bitfiles/2-28/MatMul_SA10.bit")
-# accel_ip = overlay.mmult_accel_0
-
 import accel_ip
+import torch
+import numpy as np
+import time
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
-# %% [markdown]
 # # Core Function
 # - `call_fpga()`: Handles memory management and parameter configuration for the hardware accelerator
-
-
 def call_fpga(A_buf, B_buf, C_buf, accel_ptr, N, K, M, update_A):
     """
     Runs a 2D matrix multiplication on the FPGA accelerator:
@@ -30,7 +26,6 @@ def call_fpga(A_buf, B_buf, C_buf, accel_ptr, N, K, M, update_A):
    
 
 
-# %% [markdown]
 # # Helper Functions
 # This block contains utility functions for FPGA-based acceleration.  
 # - **call_fpga()**: Sends matrix multiplication tasks to the FPGA and retrieves results.
@@ -39,18 +34,6 @@ def call_fpga(A_buf, B_buf, C_buf, accel_ptr, N, K, M, update_A):
 # - **display_model_confidence()**: Converts logits to human-readable class confidence.
 # 
 
-# %%
-import numpy as np
-# from pynq import allocate
-
-# def pynq_buffer_from_numpy(np_array):
-#     """
-#     Allocates a PYNQ buffer with the same shape and dtype as np_array,
-#     then copies the data into the buffer.
-#     """
-#     buf = allocate(np_array.shape, dtype=np_array.dtype)
-#     np.copyto(buf, np_array)
-#     return buf
 def requantize(int32_array, scale, zero_point=0):
     """
     Requantizes an int32 numpy array to int8 using the provided scale and zero_point.
@@ -80,7 +63,6 @@ def display_model_confidence(logits, device_name="Model"):
 
 
 
-# %% [markdown]
 # # Custom Module for FPGA Offload
 # #### FPGA-Optimized Linear Layer for Q, K, V Projections
 # This block defines **FPGAQuantizedLinear**, a custom PyTorch module that replaces  
@@ -92,9 +74,6 @@ def display_model_confidence(logits, device_name="Model"):
 # This module is later integrated into DistilBERT for hardware acceleration.
 # 
 
-# %%
-import torch
-import numpy as np
 
 class FPGAQuantizedLinear(torch.nn.Module):
     def __init__(self, quantized_linear, act_scale, accel_ptr, hidden_size=768, update_A=True):
@@ -196,7 +175,6 @@ class FPGAQuantizedLinear(torch.nn.Module):
             out_tensor = out_tensor.reshape(B, S, self.hidden_size)
         return out_tensor
 
-# %% [markdown]
 # # Replacing Q, K, V Layers with FPGA Versions
 # This function walks through all transformer layers in the quantized DistilBERT model  
 # and replaces the **Q, K, and V projection layers** with the custom **FPGAQuantizedLinear** module.
@@ -205,7 +183,6 @@ class FPGAQuantizedLinear(torch.nn.Module):
 # - Enables model acceleration while preserving transformer layer structure.
 # 
 
-# %%
 def integrate_fpga_offload(model_quant, act_scale, accel_ptr, hidden_size=768):
     """
     Replaces the Q, K, V projection layers in each transformer layer with the FPGA-accelerated custom module.
@@ -223,8 +200,6 @@ def integrate_fpga_offload(model_quant, act_scale, accel_ptr, hidden_size=768):
         layer.attention.k_lin = FPGAQuantizedLinear(layer.attention.k_lin, act_scale, accel_ptr, hidden_size, update_A=False)
         layer.attention.v_lin = FPGAQuantizedLinear(layer.attention.v_lin, act_scale, accel_ptr, hidden_size, update_A=False)
 
-# %%
-import numpy as np
 
 def compute_activation_scale(activation_list, percentile=99.9, use_demo=0):
     """
@@ -257,7 +232,6 @@ def compute_activation_scale(activation_list, percentile=99.9, use_demo=0):
     return scale
 
 
-# %% [markdown]
 # # Example Usage – Custom Forward Pass Integration
 # This block demonstrates how to:
 # 1. **Load and quantize a DistilBERT model**.
@@ -267,24 +241,25 @@ def compute_activation_scale(activation_list, percentile=99.9, use_demo=0):
 # Only the **Q, K, and V projections** are offloaded to FPGA; the remaining layers run on CPU/GPU.
 # 
 
-# %%
-import torch
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
-# Assume call_fpga() is already defined and accel_ip is configured on your KV260.
-# For example:
-# accel_ip = get_accel_ip_handle()   # <-- user-specific setup
 pci_addr = "0000:00:04.0"
 accel_ptr = accel_ip.xmmult_accel_device_init(pci_addr)
 
 # 1. Load and Quantize the Model
-model_name = "distilbert-base-uncased-finetuned-sst-2-english"
+model_name = "distilbert-base-uncased-finetuned-sst-2-english" # distilBERT fine-tuned on SST-2 for sentiment classification (positive/negative)
 tokenizer = DistilBertTokenizer.from_pretrained(model_name)
 model = DistilBertForSequenceClassification.from_pretrained(model_name)
 model.eval()
 
 # Apply dynamic quantization to convert Linear layers to int8.
+# - 遍历 model，找到类型属于 torch.nn.Linear 的层，替换为 torch.nn.quantized.dynamic.Linear
+# - 返回一个新的模型 model_int8，原模型不改
+# 动态量化： 
+# - 权重在量化时离线压缩为 int8（qint8），保存 scale/zero_point（per-tensor，一般接近对称，zero_point 通常为 0）
+# - 前向时，输入激活在运行时临时量化（dynamic），用 int8×int8 做点积，int32 累加，最后反量化回 float32（并加 FP32 bias）
+# - 接口和输出类型保持与原 Linear 一致（float32）
 model_int8 = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
+# Set to eval mode
 model_int8.eval()
 
 # 2. Gather a Calibration Set of Activations to Compute a Global Activation Scale
@@ -293,7 +268,7 @@ calib_sentences = [
 ]
 calib_activations = []
 for sentence in calib_sentences:
-    inputs = tokenizer(sentence, return_tensors="pt")
+    inputs = tokenizer(sentence, return_tensors="pt")   # shape: (1, L)
     with torch.no_grad():
         # Get the embedding output; shape: (B, L, 768). Here B=1.
         emb = model.distilbert.embeddings(inputs.input_ids)  # shape: (1, L, 768)
@@ -312,7 +287,6 @@ print("Global Activation Scale (Demo):", global_act_scale_demo)
 test_sentence = calib_sentences[0]
 print(f"input = '{test_sentence}'")
 
-# %% [markdown]
 # # FPGA vs. CPU Inference Benchmarking
 # 
 # ### **Objective**
@@ -348,8 +322,6 @@ print(f"input = '{test_sentence}'")
 # between **CPU and FPGA-accelerated execution**.
 # 
 
-# %%
-import time
 
 # CPU-only Inference
 inputs = tokenizer(test_sentence, return_tensors="pt")
