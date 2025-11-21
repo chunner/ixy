@@ -29,25 +29,25 @@ XMmult_accel *xmmult_accel_device_init(const char *pci_addr) {
 int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uintptr_t B, uintptr_t C,
     int N, int K, int M, int updateA) {
     // debug info
-    debug("xmmult_accel_execute called with parameters:\n");
-    debug("  A: %p\n", (void *) A);
-    debug("  B: %p\n", (void *) B);
-    debug("  C: %p\n", (void *) C);
-    debug("  N: %d\n", N);
-    debug("  K: %d\n", K);
-    debug("  M: %d\n", M);
-    debug("  updateA: %d\n", updateA);
+    printf("xmmult_accel_execute called with parameters:\n");
+    printf("  A: %p\n", (void *) A);
+    printf("  B: %p\n", (void *) B);
+    printf("  C: %p\n", (void *) C);
+    printf("  N: %d\n", N);
+    printf("  K: %d\n", K);
+    printf("  M: %d\n", M);
+    printf("  updateA: %d\n", updateA);
 
     uintptr_t A_phy = virt_to_phys(A);
     uintptr_t B_phy = virt_to_phys(B);
     uintptr_t C_phy = virt_to_phys(C);
-    debug("Physical Address A: %p\n", A_phy);
-    debug("Physical Address B: %p\n", B_phy);
-    debug("Physical Address C: %p\n", C_phy);
+    printf("Physical Address A: %p\n", A_phy);
+    printf("Physical Address B: %p\n", B_phy);
+    printf("Physical Address C: %p\n", C_phy);
     // 1. Wait for Idle
     while (XMmult_accel_IsIdle(InstancePtr) == 0);
 
-    debug("xmmult_accel is idle, proceeding with execution.\n");
+    printf("xmmult_accel is idle, proceeding with execution.\n");
     // 2. Set parameters
     XMmult_accel_Set_N(InstancePtr, N);
     XMmult_accel_Set_K(InstancePtr, K);
@@ -61,15 +61,15 @@ int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uin
 
     _mm_mfence();
 
-    debug("Parameters and pointers set, starting accelerator.\n");
+    printf("Parameters and pointers set, starting accelerator.\n");
     // 4. Start the accelerator
     XMmult_accel_Start(InstancePtr);
 
     _mm_mfence();
-    debug("Accelerator started, waiting for completion.\n");
+    printf("Accelerator started, waiting for completion.\n");
     // 5. Wait for Done
     while (XMmult_accel_IsDone(InstancePtr) == 0);
-    debug("xmmult_accel execution completed.\n");
+    printf("xmmult_accel execution completed.\n");
 
     return 0;
 
