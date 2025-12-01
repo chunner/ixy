@@ -33,28 +33,28 @@ accel_ip.xmmult_accel_execute(
 print("\nMat C (by accel_ip):")
 print(C2)
 
-import os
-import struct
+# import os
+# import struct
 
-def virt_to_phys(addr):
-    page_size = os.sysconf("SC_PAGE_SIZE")
-    pagemap_entry_size = 8
-    vpn = addr // page_size
+# def virt_to_phys(addr):
+#     page_size = os.sysconf("SC_PAGE_SIZE")
+#     pagemap_entry_size = 8
+#     vpn = addr // page_size
 
-    with open("/proc/self/pagemap", "rb") as f:
-        f.seek(vpn * pagemap_entry_size)
-        entry = f.read(pagemap_entry_size)
-        val = struct.unpack("Q", entry)[0]
+#     with open("/proc/self/pagemap", "rb") as f:
+#         f.seek(vpn * pagemap_entry_size)
+#         entry = f.read(pagemap_entry_size)
+#         val = struct.unpack("Q", entry)[0]
 
-        if (val >> 63) == 0:
-            raise RuntimeError("page not present")
+#         if (val >> 63) == 0:
+#             raise RuntimeError("page not present")
 
-        pfn = val & ((1 << 55) - 1)
-        return (pfn * page_size) + (addr % page_size)
+#         pfn = val & ((1 << 55) - 1)
+#         return (pfn * page_size) + (addr % page_size)
 
 
-virt_addr = A.ctypes.data
-phys_addr = virt_to_phys(virt_addr)
+# virt_addr = A.ctypes.data
+# phys_addr = virt_to_phys(virt_addr)
 
-print("virtual:", hex(virt_addr))
-print("physical:", hex(phys_addr))
+# print("virtual:", hex(virt_addr))
+# print("physical:", hex(phys_addr))
