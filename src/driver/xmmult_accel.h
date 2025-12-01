@@ -31,6 +31,7 @@ extern "C" {
 #include <stddef.h>
 #endif
 #include "xmmult_accel_type.h"
+#include "memory.h"
 
 /**************************** Type Definitions ******************************/
 #ifdef __linux__
@@ -52,6 +53,9 @@ extern "C" {
     typedef struct {
         u64 Control_BaseAddress;
         u32 IsReady;
+        struct dma_memory dma_A;
+        struct dma_memory dma_B;
+        struct dma_memory dma_C;
     } XMmult_accel;
 
     typedef u32 word_type;

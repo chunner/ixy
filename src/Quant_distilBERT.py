@@ -3,7 +3,8 @@ import torch
 import numpy as np
 import time
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
-
+import os
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 # # Core Function
 # - `call_fpga()`: Handles memory management and parameter configuration for the hardware accelerator
 def call_fpga(A_buf, B_buf, C_buf, accel_ptr, N, K, M, update_A):

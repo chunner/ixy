@@ -4,12 +4,9 @@ import accel_ip
 pci_addr = "0000:00:04.0"
 
 
-A = np.array([[1, 2, 3],
-              [4, 5, 6]], dtype=np.int8)
+A = np.random.randint(0,10, size=(1, 128), dtype=np.int8)
 
-B = np.array([[7, 8],
-              [9, 10],
-              [11, 12]], dtype=np.int8)
+B = np.random.randint(0, 10, size=(128,1), dtype=np.int8)
               
 print("Mat A：")
 print(A)
