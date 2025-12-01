@@ -3,11 +3,10 @@ import accel_ip
 
 pci_addr = "0000:00:04.0"
 
+N, K, M = 1, 128, 1
+A = np.random.randint(-10, 10, size=(N, K)).astype(np.int8, order='C')
+B = np.random.randint(-10, 10, size=(K, M)).astype(np.int8, order='C')
 
-A = np.random.randint(0,10, size=(1, 128), dtype=np.int8)
-
-B = np.random.randint(0, 10, size=(128,1), dtype=np.int8)
-              
 print("Mat A：")
 print(A)
 print("\nMat B：")
@@ -20,7 +19,7 @@ print(C1)
 
 
 accel = accel_ip.xmmult_accel_device_init(pci_addr)
-C2= np.zeros((A.shape[0], B.shape[1]), dtype=np.int32)
+C2= np.zeros((A.shape[0], B.shape[1]), dtype=np.int32, order='C')
 accel_ip.xmmult_accel_execute(
     accel, 
     A.ctypes.data, 
