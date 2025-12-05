@@ -24,7 +24,7 @@ XMmult_accel *xmmult_accel_device_init(const char *pci_addr) {
     InstancePtr->Control_BaseAddress = (u64) pci_map_resource(pci_addr);
     InstancePtr->dma_A = memory_allocate_dma(MAX_N * MAX_K * sizeof(int8_t), 1);
     InstancePtr->dma_B = memory_allocate_dma(MAX_K * MAX_M * sizeof(int8_t), 1);
-    InstancePtr->dma_C = memory_allocate_dma(MAX_N * MAX_M * sizeof(int32_t), 0);
+    InstancePtr->dma_C = memory_allocate_dma(MAX_N * MAX_M * sizeof(int32_t), 1);
 
     InstancePtr->IsReady = XIL_COMPONENT_IS_READY;
     XMmult_accel_InterruptGlobalDisable(InstancePtr);
