@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import time
 import os
+from torch.profiler import profile, record_function, ProfilerActivity
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 # # Core Function
@@ -123,61 +124,62 @@ class FPGAQuantizedLinear(torch.nn.Module):
         the int32 result is dequantized to FP32 and the bias is added (if available).
         """
         # Save the original shape.
-        orig_shape = x.shape
-        if x.dim() == 3:
-            B, S, D = x.shape
-            x_flat = x.reshape(B * S, D)
-        else:
-            x_flat = x
+        with record_function("FPGA_QKV_Linear"):
+            orig_shape = x.shape
+            if x.dim() == 3:
+                B, S, D = x.shape
+                x_flat = x.reshape(B * S, D)
+            else:
+                x_flat = x
 
-        # Determine the number of rows for the FPGA call.
-        N = x_flat.shape[0]
+            # Determine the number of rows for the FPGA call.
+            N = x_flat.shape[0]
 
-        # Quantize the input if it is in float32.
-        if x_flat.dtype == torch.float32:
-            x_int8 = torch.clamp(torch.round(x_flat / self.act_scale), -128, 127).to(torch.int8)
-        else:
-            x_int8 = x_flat
+            # Quantize the input if it is in float32.
+            if x_flat.dtype == torch.float32:
+                x_int8 = torch.clamp(torch.round(x_flat / self.act_scale), -128, 127).to(torch.int8)
+            else:
+                x_int8 = x_flat
 
-        # Convert to a NumPy int8 array.
-        x_np = x_int8.cpu().numpy().astype(np.int8)
-        x_np = np.ascontiguousarray(x_np)  # Ensure contiguous layout
+            # Convert to a NumPy int8 array.
+            x_np = x_int8.cpu().numpy().astype(np.int8)
+            x_np = np.ascontiguousarray(x_np)  # Ensure contiguous layout
         
-        # Convert input activation and weight to PYNQ buffers.
-        A_buf = x_np.ctypes.data
-        W_buf = self.weight_int8.ctypes.data
-        # Allocate an output buffer for the int32 result (shape: (N, hidden_size))
-        #C_buf = allocate((N, self.hidden_size), dtype=np.int32)
-        C_np = np.empty((N, self.hidden_size), dtype=np.int32)
-        C_np = np.ascontiguousarray(C_np)  # Ensure contiguous layout
-        C_buf = C_np.ctypes.data
+            # Convert input activation and weight to PYNQ buffers.
+            A_buf = x_np.ctypes.data
+            W_buf = self.weight_int8.ctypes.data
+            # Allocate an output buffer for the int32 result (shape: (N, hidden_size))
+            #C_buf = allocate((N, self.hidden_size), dtype=np.int32)
+            C_np = np.empty((N, self.hidden_size), dtype=np.int32)
+            C_np = np.ascontiguousarray(C_np)  # Ensure contiguous layout
+            C_buf = C_np.ctypes.data
+
+            # Call the FPGA accelerator:
+            # Instead of hardcoding update_A=1, we now use self.update_A:
+            # Time just the FPGA computation
+            start_fpga = time.time()
+            call_fpga(A_buf, W_buf, C_buf, self.accel_ptr, N, self.hidden_size, self.hidden_size, update_A=int(self.update_A))
+            fpga_duration = time.time() - start_fpga
         
-        # Call the FPGA accelerator:
-        # Instead of hardcoding update_A=1, we now use self.update_A:
-        # Time just the FPGA computation
-        start_fpga = time.time()
-        call_fpga(A_buf, W_buf, C_buf, self.accel_ptr, N, self.hidden_size, self.hidden_size, update_A=int(self.update_A))
-        fpga_duration = time.time() - start_fpga
+            FPGAQuantizedLinear.total_fpga_compute_time += fpga_duration
+            FPGAQuantizedLinear.call_count += 1
         
-        FPGAQuantizedLinear.total_fpga_compute_time += fpga_duration
-        FPGAQuantizedLinear.call_count += 1
+            # Retrieve the int32 result.
+            C_int32 = np.array(C_np)
+            # Dequantize: convert int32 accumulator to FP32 using the effective scale.
+            out_fp32 = C_int32.astype(np.float32) * self.effective_scale
         
-        # Retrieve the int32 result.
-        C_int32 = np.array(C_np)
-        # Dequantize: convert int32 accumulator to FP32 using the effective scale.
-        out_fp32 = C_int32.astype(np.float32) * self.effective_scale
+            # If a bias is present, add it (broadcast along axis 0).
+            if self.bias is not None:
+                # Ensure bias is added to each row.
+                out_fp32 = out_fp32 + self.bias
         
-        # If a bias is present, add it (broadcast along axis 0).
-        if self.bias is not None:
-            # Ensure bias is added to each row.
-            out_fp32 = out_fp32 + self.bias
+            # Convert back to a torch tensor.
+            out_tensor = torch.tensor(out_fp32, dtype=torch.float32)
         
-        # Convert back to a torch tensor.
-        out_tensor = torch.tensor(out_fp32, dtype=torch.float32)
-        
-        # If the original input was 3D, reshape back to (B, S, hidden_size).
-        if x.dim() == 3:
-            out_tensor = out_tensor.reshape(B, S, self.hidden_size)
+            # If the original input was 3D, reshape back to (B, S, hidden_size).
+            if x.dim() == 3:
+                out_tensor = out_tensor.reshape(B, S, self.hidden_size)
         return out_tensor
 
 # # Replacing Q, K, V Layers with FPGA Versions
@@ -237,6 +239,9 @@ def compute_activation_scale(activation_list, percentile=99.9, use_demo=0):
     return scale
 
 
+
+
+
 # # Example Usage – Custom Forward Pass Integration
 # This block demonstrates how to:
 # 1. **Load and quantize a DistilBERT model**.
@@ -247,7 +252,7 @@ def compute_activation_scale(activation_list, percentile=99.9, use_demo=0):
 # 
 
 
-pci_addr = "0000:00:04.0"
+pci_addr = os.environ.get('PCI_ADDR')
 accel_ptr = accel_ip.xmmult_accel_device_init(pci_addr)
 
 # 1. Load and Quantize the Model
@@ -326,19 +331,66 @@ print(f"input = '{test_sentence}'")
 # This block provides a **detailed comparison** of **inference speed, accuracy, and prediction confidence**  
 # between **CPU and FPGA-accelerated execution**.
 # 
+def register_qkv_profiling_hooks(model):
+    """
+    为模型中的 Q, K, V 线性层注册 Profiler 钩子，以便单独统计它们的耗时。
+    """
+    def get_hook(name):
+        def hook(module, input, output):
+            # 这个上下文管理器会自动记录名为 name 的代码块耗时
+            with record_function(name):
+                pass 
+        return hook
+
+    # 遍历所有 Transformer 层
+    for i, layer in enumerate(model.distilbert.transformer.layer):
+        # 注册 Forward Pre-hook (在 forward 执行前触发)
+        # 注意：为了包裹住整个 forward 执行，通常需要更复杂的 wrapper，
+        # 但简单的 record_function 只能标记点。
+        # 更有效的方法是使用 forward_pre_hook 和 forward_hook 配合，或者直接 wrap 模块。
+        
+        # 方法：直接替换 forward 方法来包裹 record_function
+        # 1. Q Layer
+        original_q_forward = layer.attention.q_lin.forward
+        def new_q_forward(x, original=original_q_forward):
+            with record_function("CPU_QKV_Linear"):
+                return original(x)
+        layer.attention.q_lin.forward = new_q_forward
+
+        # 2. K Layer
+        original_k_forward = layer.attention.k_lin.forward
+        def new_k_forward(x, original=original_k_forward):
+            with record_function("CPU_QKV_Linear"):
+                return original(x)
+        layer.attention.k_lin.forward = new_k_forward
+
+        # 3. V Layer
+        original_v_forward = layer.attention.v_lin.forward
+        def new_v_forward(x, original=original_v_forward):
+            with record_function("CPU_QKV_Linear"):
+                return original(x)
+        layer.attention.v_lin.forward = new_v_forward
 
 
 # CPU-only Inference
 inputs = tokenizer(test_sentence, return_tensors="pt")
+register_qkv_profiling_hooks(model) 
 
 start_time = time.time()
-with torch.no_grad():
-    outputs_cpu = model(inputs.input_ids)
-    logits_cpu = outputs_cpu.logits
+with profile(
+    activities=[ProfilerActivity.CPU],
+    record_shapes=True,
+    with_stack=True
+)as prof:
+    with torch.no_grad():
+        outputs_cpu = model(inputs.input_ids)
+        logits_cpu = outputs_cpu.logits
 cpu_time = time.time() - start_time
 
+print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+
 print(f"CPU Inference Time: {cpu_time:.6f} seconds")
-# print("CPU Logits:", logits_cpu)
+print("CPU Logits:", logits_cpu)
 
 # FPGA-Offloaded Inference
 integrate_fpga_offload(model_int8, global_act_scale_demo, accel_ptr, hidden_size=768)
@@ -349,10 +401,20 @@ FPGAQuantizedLinear.call_count = 0
 
 # Run inference normally with your existing code
 start_time = time.time()
-with torch.no_grad():
-    outputs_fpga = model_int8(inputs.input_ids)
-    logits_fpga = outputs_fpga.logits
+print("\nStarting Profiling...")
+with profile(
+    activities=[ProfilerActivity.CPU],
+    record_shapes=True,
+    with_stack=True
+) as prof:
+    with torch.no_grad():
+        outputs_fpga = model_int8(inputs.input_ids)
+        logits_fpga = outputs_fpga.logits
 fpga_time = time.time() - start_time
+print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+
+print(f"FPGA Inference Time (excluding overheads): {FPGAQuantizedLinear.total_fpga_compute_time:.6f} seconds")
+print("FPGA Logits:", logits_fpga)
 
 # After inference, report the detailed timing
 print(f"FPGA calls: {FPGAQuantizedLinear.call_count}")
@@ -377,8 +439,8 @@ predicted_class_fpga = torch.argmax(probs_fpga, dim=1).item()
 confidence_fpga = probs_fpga[0, predicted_class_fpga].item() * 100
 
 # Print results
-# print(f"Max Logits Difference: {max_diff:.6f}")
-# print(f"Mean Logits Difference: {mean_diff:.6f}")
+print(f"Max Logits Difference: {max_diff:.6f}")
+print(f"Mean Logits Difference: {mean_diff:.6f}")
 
 display_model_confidence(logits_cpu, device_name="CPU")
 display_model_confidence(logits_fpga, device_name="FPGA")
@@ -388,55 +450,5 @@ print(f"FPGA Inference Time (including overheads): {fpga_time:.6f} seconds")
 print(f"Overall Speedup (CPU time / FPGA time): {cpu_time / fpga_time:.2f}x")
 
 
-
-
-# %% [markdown]
-# ## **Final Reflections: FPGA Offloading vs. PyTorch Inference**
-# 
-# ### **Key Takeaways**
-# 1. **FPGA Delivers Significant Computational Speedup, But System Bottlenecks Persist**  
-#    - Our **benchmark shows a 7.01× speedup over PyTorch and a 214.24× speedup over NumPy** for a single **(64, 768) × (768, 3072) MatMul** operation.  
-#    - Despite this raw speedup, **end-to-end inference time reduction remains limited** due to system-level inefficiencies such as data transfer overhead and synchronization delays.
-# 
-# 2. **Challenges We Encountered**
-#    - **Data Transfer Overhead Dominates Latency**  
-#      - Moving activations and weights **between CPU and FPGA introduces significant latency**, partially negating the speedup from FPGA computation.  
-#    - **CPU-FPGA Synchronization Delays Reduce Efficiency**  
-#      - The CPU often **idles while waiting for FPGA execution**, rather than executing operations in parallel.
-#    - **QKV Projection Alone Does Not Account for a Large Portion of Total Compute**  
-#      - While FPGA significantly accelerates MatMul, **QKV projection alone does not contribute enough to total inference time to yield major speedup**.
-#    - **FPGA Start-Up & Control Overhead Adds Unavoidable Delays**  
-#      - Register setup, memory flushing, and synchronization introduce additional latency before computation even starts.
-#    - **PyTorch’s Highly Optimized GEMM Kernels Reduce the Acceleration Gap**  
-#      - PyTorch’s **int32 GEMM (MKL-DNN/TensorRT)** is already highly efficient, making it harder to achieve dramatic acceleration unless we offload a larger portion of the workload.
-# 
-# ---
-# 
-# ### **Lessons Learned and Future Considerations**
-# #### **1. Reducing Data Transfer Overhead is Crucial**
-# - To unlock **FPGA’s full potential**, future work should minimize data movement **between CPU and FPGA**.
-# - Using more **persistent FPGA memory** for activations (like what we did for input embedding) and implementing **DMA (if available)** could further reduce transfer latency.
-# 
-# #### **2. Improving CPU-FPGA Execution Pipelining**
-# - **Overlapping CPU and FPGA execution** is essential—while the FPGA computes QKV projection, the CPU should process **attention softmax or FFN layers** in parallel.
-# - **Double buffering techniques** can ensure that **data is transferred while computation is ongoing**, reducing idle time, but it requrire careful timing design otherwise more latency will be introduced.
-# 
-# #### **3. Expanding FPGA Workload Beyond QKV**
-# - The **Feed-Forward Network (FFN) layer**, which consists of **(64, 3072) × (3072, 768) MatMul**, is computationally expensive and an ideal candidate for FPGA acceleration.
-# - **Self-attention softmax computation** could also be offloaded to FPGA to further reduce CPU workload and improve overall efficiency.
-# 
-# #### **4. Optimizing FPGA Utilization and Scaling**
-# - **Parallelizing Q, K, and V projections** on separate systolic arrays could further improve efficiency.
-# - Keeping the **FPGA accelerator active between layers**, rather than resetting registers and flushing memory for each computation, would reduce unnecessary overhead.
-# 
-# ---
-# 
-# ### **Final Thoughts**
-# This project has **successfully validated the power of FPGA acceleration for deep learning workloads**, demonstrating a **7× speedup over PyTorch CPU execution** at the **MatMul level**. However, we have also seen firsthand that **raw computation speed is only part of the equation**—**data movement, synchronization, and system integration play an equally critical role** in achieving real-world performance gains.
-# 
-# For future FPGA acceleration research, a **holistic approach** that integrates **both compute and system-level optimizations** will be necessary to fully harness the hardware’s potential. Our findings serve as a **guiding reference for future efforts**, emphasizing that true performance gains require a **balance of raw compute acceleration and efficient system-level execution**.
-# 
-# While this marks the completion of our current project, we hope that the insights gained here will pave the way for more **efficient and scalable deep learning inference on FPGA**. 🚀
-# 
 
 

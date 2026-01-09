@@ -17,6 +17,7 @@
 #include <sys/epoll.h>
 
 #include <driver/device.h>
+#include "memory.h"
 
 #define IRQ_SET_BUF_LEN (sizeof(struct vfio_irq_set) + sizeof(int))
 #define MAX_INTERRUPT_VECTORS 32

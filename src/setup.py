@@ -5,8 +5,6 @@ ext_modules = [
     Extension(
         'accel_ip',
         sources=['wrapper.cpp', 
-                 'app/ixy-pktgen.c', 
-                 'driver/cdma.c', 
                  'driver/device.c',
                  'driver/xmmult_accel.c',
                  'driver/xmmult_accel_tools.c',

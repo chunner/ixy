@@ -1,9 +1,10 @@
 import numpy as np
 import accel_ip
+import os
 
-pci_addr = "0000:00:04.0"
+pci_addr = os.environ.get('PCI_ADDR')
 
-N, K, M = 1, 128, 1
+N, K, M = 64, 768, 768 
 A = np.random.randint(-10, 10, size=(N, K)).astype(np.int8, order='C')
 B = np.random.randint(-10, 10, size=(K, M)).astype(np.int8, order='C')
 
