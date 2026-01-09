@@ -3,7 +3,7 @@
 #include "device.h"
 #include "driver/ixgbe.h"
 #include "driver/virtio.h"
-#include "driver/cdma.h"
+// #include "driver/cdma.h"
 #include "pci.h"
 
 struct ixy_device *ixy_init(const char *pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout) {
@@ -21,5 +21,5 @@ struct ixy_device *ixy_init(const char *pci_addr, uint16_t rx_queues, uint16_t t
 	// if (class_id != 2) {
 	// 	error("Device %s is not a NIC", pci_addr);
 	// }
-	return cdma_init(pci_addr, rx_queues, tx_queues);
+	// return cdma_init(pci_addr, rx_queues, tx_queues);
 }
