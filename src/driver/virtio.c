@@ -22,10 +22,10 @@
 // QEMU's native Virtio-Net device uses PIO to access BAR1
 //#define PIO
 
-static const char* driver_name = "ixy-virtio";
+static const char *driver_name = "ixy-virtio";
 
-static inline void virtio_legacy_notify_queue(struct virtio_device* dev, uint16_t idx) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void virtio_legacy_notify_queue(struct virtio_device *dev, uint16_t idx) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 #ifdef PIO
 	write_io16(dev->fd, idx, VIRTIO_PCI_QUEUE_NOTIFY);
 #else
@@ -33,8 +33,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 #endif
 }
 
-static uint8_t virtio_legacy_get_status(struct virtio_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static uint8_t virtio_legacy_get_status(struct virtio_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 #ifdef PIO
 	return read_io8(dev->fd, VIRTIO_PCI_STATUS);
 #else
@@ -42,8 +42,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 #endif
 }
 
-static void virtio_legacy_check_status(struct virtio_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void virtio_legacy_check_status(struct virtio_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 #ifdef PIO
 	if (read_io8(dev->fd, VIRTIO_PCI_STATUS) == VIRTIO_CONFIG_STATUS_FAILED) {
 #else
@@ -51,10 +51,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 #endif
 		error("Device signaled unrecoverable error");
 	}
-}
+	}
 
 static inline size_t virtio_legacy_vring_size(unsigned int num, unsigned long align) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	size_t size;
 
 	size = num * sizeof(struct vring_desc);
@@ -64,16 +64,16 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	return size;
 }
 
-static inline void virtio_legacy_vring_init(struct vring* vr, unsigned int num, uint8_t* p, unsigned long align) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void virtio_legacy_vring_init(struct vring *vr, unsigned int num, uint8_t * p, unsigned long align) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	vr->num = num;
-	vr->desc = (struct vring_desc*)p;
-	vr->avail = (struct vring_avail*)(p + num * sizeof(struct vring_desc));
-	vr->used = (void*)RTE_ALIGN_CEIL((uintptr_t)(&vr->avail->ring[num]), align);
+	vr->desc = (struct vring_desc *) p;
+	vr->avail = (struct vring_avail *) (p + num * sizeof(struct vring_desc));
+	vr->used = (void *) RTE_ALIGN_CEIL((uintptr_t) (&vr->avail->ring[num]), align);
 }
 
-static void virtio_legacy_setup_tx_queue(struct virtio_device* dev, uint16_t idx) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void virtio_legacy_setup_tx_queue(struct virtio_device *dev, uint16_t idx) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (idx != 1 && idx != 2) {
 		error("Can't setup queue %u as Tx queue", idx);
 	}
@@ -101,7 +101,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 #endif
 
 	// Section 2.4.2 for layout
-	struct virtqueue* vq = calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
+	struct virtqueue *vq = calloc(1, sizeof(*vq) + sizeof(void *) * max_queue_size);
 	virtio_legacy_vring_init(&vq->vring, max_queue_size, mem.virt, 4096);
 	debug("vring desc: %p, vring avail: %p, vring used: %p", vq->vring.desc, vq->vring.avail, vq->vring.used);
 	for (size_t i = 0; i < vq->vring.num; ++i) {
@@ -142,14 +142,14 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	}
 }
 
-static void virtio_legacy_send_command(struct virtio_device* dev, void* cmd, size_t cmd_len) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct virtqueue* vq = dev->ctrl_queue;
+static void virtio_legacy_send_command(struct virtio_device *dev, void *cmd, size_t cmd_len) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct virtqueue *vq = dev->ctrl_queue;
 
 	if (cmd_len < sizeof(struct virtio_net_ctrl_hdr)) {
 		error("Command can not be shorter than control header");
 	}
-	if (((uint8_t*)cmd)[0] != VIRTIO_NET_CTRL_RX) {
+	if (((uint8_t *) cmd)[0] != VIRTIO_NET_CTRL_RX) {
 		error("Command class is not supported");
 	}
 
@@ -157,7 +157,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	// Find free desciptor slot
 	uint16_t idx = 0;
 	for (idx = 0; idx < vq->vring.num; ++idx) {
-		struct vring_desc* desc = &vq->vring.desc[idx];
+		struct vring_desc *desc = &vq->vring.desc[idx];
 		if (desc->addr == 0) {
 			break;
 		}
@@ -168,7 +168,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		debug("Found free desc slot at %u (%u)", idx, vq->vring.num);
 	}
 
-	struct pkt_buf* buf = pkt_buf_alloc(vq->mempool);
+	struct pkt_buf *buf = pkt_buf_alloc(vq->mempool);
 	if (!buf) {
 		error("Control queue ran out of buffers");
 	}
@@ -179,13 +179,13 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	 * Error: kvm: virtio-net ctrl missing headers
 	 * Version: QEMU emulator version 2.7.1 pve-qemu-kvm_2.7.1-4
 	 */
-	// All in one descriptor
-	// vq->vring.desc[idx].len = cmd_len;
-	// vq->vring.desc[idx].addr = buf->buf_addr_phy + offsetof(struct pkt_buf, data);
-	// vq->vring.desc[idx].flags = VRING_DESC_F_WRITE;
-	// vq->vring.desc[idx].next = 0;
+	 // All in one descriptor
+	 // vq->vring.desc[idx].len = cmd_len;
+	 // vq->vring.desc[idx].addr = buf->buf_addr_phy + offsetof(struct pkt_buf, data);
+	 // vq->vring.desc[idx].flags = VRING_DESC_F_WRITE;
+	 // vq->vring.desc[idx].next = 0;
 
-	// Device-readable head: cmd header
+	 // Device-readable head: cmd header
 	vq->vring.desc[idx].len = 2;
 	vq->vring.desc[idx].addr = buf->buf_addr_phy + offsetof(struct pkt_buf, data);
 	vq->vring.desc[idx].flags = VRING_DESC_F_NEXT;
@@ -216,7 +216,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	}
 	vq->vq_used_last_idx++;
 	// Check status and free buffer
-	struct vring_used_elem* e = &vq->vring.used->ring[vq->vring.used->idx];
+	struct vring_used_elem *e = &vq->vring.used->ring[vq->vring.used->idx];
 	debug("e %p: id %u len %u", e, e->id, e->len);
 	if (e->id != idx) {
 		error("Used buffer has different index as sent one");
@@ -230,8 +230,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	vq->vring.desc[idx + 2] = (struct vring_desc){};
 }
 
-static void virtio_legacy_set_promiscuous(struct virtio_device* dev, bool on) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void virtio_legacy_set_promiscuous(struct virtio_device *dev, bool on) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	struct {
 		struct virtio_net_ctrl_hdr hdr;
 		uint8_t on;
@@ -247,14 +247,14 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	info("Set promisc to %u", on);
 }
 
-void virtio_set_promisc(struct ixy_device* ixy, bool enabled) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
+void virtio_set_promisc(struct ixy_device *ixy, bool enabled) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct virtio_device *dev = IXY_TO_VIRTIO(ixy);
 	virtio_legacy_set_promiscuous(dev, enabled);
 }
 
-uint32_t virtio_get_link_speed(const struct ixy_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+uint32_t virtio_get_link_speed(const struct ixy_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return 1000;
 }
 
@@ -264,8 +264,8 @@ static const struct virtio_legacy_net_hdr net_hdr = {
 	.hdr_len = 14 + 20 + 8,
 };
 
-static void virtio_legacy_setup_rx_queue(struct virtio_device* dev, uint16_t idx) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void virtio_legacy_setup_rx_queue(struct virtio_device *dev, uint16_t idx) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (idx != 0) {
 		error("Can't setup Tx queue as Rx");
 	}
@@ -299,7 +299,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 #endif
 
 	// Section 2.4.2 for layout
-	struct virtqueue* vq = calloc(1, sizeof(*vq) + sizeof(void*) * max_queue_size);
+	struct virtqueue *vq = calloc(1, sizeof(*vq) + sizeof(void *) * max_queue_size);
 	virtio_legacy_vring_init(&vq->vring, max_queue_size, mem.virt, 4096);
 	debug("vring desc: %p, vring avail: %p, vring used: %p", vq->vring.desc, vq->vring.avail, vq->vring.used);
 	for (size_t i = 0; i < vq->vring.num; ++i) {
@@ -330,8 +330,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	dev->rx_queue = vq;
 }
 
-static void virtio_legacy_init(struct virtio_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void virtio_legacy_init(struct virtio_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Section 3.1
 	debug("Configuring bar0");
 #ifdef PIO
@@ -358,8 +358,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 #endif
 	debug("Host features: %x", host_features);
 	const uint32_t required_features = (1u << VIRTIO_NET_F_CSUM) | (1u << VIRTIO_NET_F_GUEST_CSUM) |
-					   (1u << VIRTIO_NET_F_CTRL_VQ) | (1u << VIRTIO_F_ANY_LAYOUT) |
-					   (1u << VIRTIO_NET_F_CTRL_RX) /*| (1u<<VIRTIO_NET_F_MQ)*/;
+		(1u << VIRTIO_NET_F_CTRL_VQ) | (1u << VIRTIO_F_ANY_LAYOUT) |
+		(1u << VIRTIO_NET_F_CTRL_RX) /*| (1u<<VIRTIO_NET_F_MQ)*/;
 	debug("Reqd features: %x", required_features);
 	if ((host_features & required_features) != required_features) {
 #ifdef PIO
@@ -399,9 +399,9 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 // this is not thread-safe, (but we only support one queue anyways)
 // a proper thread-safe implementation would collect per-queue stats
 // and perform a read with relaxed memory ordering here without resetting the stats
-void virtio_read_stats(struct ixy_device* ixy, struct device_stats* stats) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
+void virtio_read_stats(struct ixy_device *ixy, struct device_stats *stats) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct virtio_device *dev = IXY_TO_VIRTIO(ixy);
 	if (stats) {
 		stats->rx_pkts += dev->rx_pkts;
 		stats->tx_pkts += dev->tx_pkts;
@@ -412,8 +412,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 }
 
 
-struct ixy_device* virtio_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+struct ixy_device *virtio_init(const char *pci_addr, uint16_t rx_queues, uint16_t tx_queues) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (getuid()) {
 		warn("Not running as root, this will probably fail");
 	}
@@ -424,22 +424,22 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		error("cannot configure %d tx queues: limit is %d", tx_queues, 1);
 	}
 	remove_driver(pci_addr);
-	struct virtio_device* dev = calloc(1, sizeof(*dev));
+	struct virtio_device *dev = calloc(1, sizeof(*dev));
 	dev->ixy.pci_addr = strdup(pci_addr);
 	/* BIBO add */
 	// Check if we want the VFIO stuff
-        // This is done by checking if the device is in an IOMMU group.
-        char path[PATH_MAX];
-        snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/iommu_group", pci_addr);
-        struct stat buffer;
-        dev->ixy.vfio = stat(path, &buffer) == 0;
-        if (dev->ixy.vfio) {
-                // initialize the IOMMU for this device
-                dev->ixy.vfio_fd = vfio_init(pci_addr);
-                if (dev->ixy.vfio_fd < 0) {
-                        error("could not initialize the IOMMU for device %s", pci_addr);
-                }
-        }
+		// This is done by checking if the device is in an IOMMU group.
+	char path[PATH_MAX];
+	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/iommu_group", pci_addr);
+	struct stat buffer;
+	dev->ixy.vfio = stat(path, &buffer) == 0;
+	if (dev->ixy.vfio) {
+		// initialize the IOMMU for this device
+		dev->ixy.vfio_fd = vfio_init(pci_addr);
+		if (dev->ixy.vfio_fd < 0) {
+			error("could not initialize the IOMMU for device %s", pci_addr);
+		}
+	}
 	/* BIBO add */
 	dev->ixy.driver_name = driver_name;
 	dev->ixy.num_rx_queues = rx_queues;
@@ -451,20 +451,20 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	dev->ixy.get_link_speed = virtio_get_link_speed;
 	/* BIBO add */
 	// Map BAR0 region
-        if (dev->ixy.vfio) {
+	if (dev->ixy.vfio) {
 #ifdef PIO
-                debug("mapping BAR1 region via VFIO...");
-                dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR1_REGION_INDEX);
+		debug("mapping BAR1 region via VFIO...");
+		dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR1_REGION_INDEX);
 #else
-                debug("mapping BAR0 region via VFIO...");
-                dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR0_REGION_INDEX);
+		debug("mapping BAR0 region via VFIO...");
+		dev->addr = vfio_map_region(dev->ixy.vfio_fd, VFIO_PCI_BAR0_REGION_INDEX);
 #endif
-                //// initialize interrupts for this device
-                //setup_interrupts(dev);
-        } else {
-                debug("mapping BAR0 region via pci file...");
-                dev->addr = pci_map_resource(pci_addr);
-        }
+		//// initialize interrupts for this device
+		//setup_interrupts(dev);
+	} else {
+		debug("mapping BAR0 region via pci file...");
+		dev->addr = pci_map_resource(pci_addr);
+	}
 	/* BIBO add */
 	enable_dma(pci_addr);
 	int config = pci_open_resource(pci_addr, "config", O_RDONLY);
@@ -481,10 +481,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	return &dev->ixy;
 }
 
-uint32_t virtio_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
-	struct virtqueue* vq = dev->rx_queue;
+uint32_t virtio_rx_batch(struct ixy_device *ixy, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct virtio_device *dev = IXY_TO_VIRTIO(ixy);
+	struct virtqueue *vq = dev->rx_queue;
 	uint32_t buf_idx;
 
 	_mm_mfence();
@@ -496,9 +496,9 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		}
 		// info("Rx packet: last used %u, used idx %u", vq->vq_used_last_idx,
 		// vq->vring.used->idx);
-		struct vring_used_elem* e = vq->vring.used->ring + (vq->vq_used_last_idx % vq->vring.num);
+		struct vring_used_elem *e = vq->vring.used->ring + (vq->vq_used_last_idx % vq->vring.num);
 		// info("Used elem %p, id %u len %u", e, e->id, e->len);
-		struct vring_desc* desc = &vq->vring.desc[e->id];
+		struct vring_desc *desc = &vq->vring.desc[e->id];
 		vq->vq_used_last_idx++;
 		// We don't support chaining or indirect descriptors
 		if (desc->flags != VRING_DESC_F_WRITE) {
@@ -509,7 +509,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		*desc = (struct vring_desc){};
 
 		// Section 5.1.6.4
-		struct pkt_buf* buf = vq->virtual_addresses[e->id];
+		struct pkt_buf *buf = vq->virtual_addresses[e->id];
 		buf->size = e->len - sizeof(net_hdr);
 		bufs[buf_idx] = buf;
 		//struct virtio_net_hdr* hdr = (void*)(buf->head_room + sizeof(buf->head_room) - sizeof(net_hdr));
@@ -520,12 +520,12 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	}
 	// Fill empty slots in descriptor table
 	for (uint16_t idx = 0; idx < vq->vring.num; ++idx) {
-		struct vring_desc* desc = &vq->vring.desc[idx];
+		struct vring_desc *desc = &vq->vring.desc[idx];
 		if (desc->addr != 0) { // descriptor points to something, therefore it is in use
 			continue;
 		}
 		// info("Found free desc slot at %u (%u)", idx, vq->vring.num);
-		struct pkt_buf* buf = pkt_buf_alloc(vq->mempool);
+		struct pkt_buf *buf = pkt_buf_alloc(vq->mempool);
 		if (!buf) {
 			error("failed to allocate new mbuf for rx, you are either leaking memory or your mempool is too small");
 		}
@@ -546,18 +546,18 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	return buf_idx;
 }
 
-uint32_t virtio_tx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct virtio_device* dev = IXY_TO_VIRTIO(ixy);
-	struct virtqueue* vq = dev->tx_queue;
+uint32_t virtio_tx_batch(struct ixy_device *ixy, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct virtio_device *dev = IXY_TO_VIRTIO(ixy);
+	struct virtqueue *vq = dev->tx_queue;
 
 	_mm_mfence();
 	// Free sent buffers
 	while (vq->vq_used_last_idx != vq->vring.used->idx) {
 		info("We can free some buffers: %u != %u", vq->vq_used_last_idx, vq->vring.used->idx);
-		struct vring_used_elem* e = vq->vring.used->ring + (vq->vq_used_last_idx % vq->vring.num);
+		struct vring_used_elem *e = vq->vring.used->ring + (vq->vq_used_last_idx % vq->vring.num);
 		info("e %p, id %u", e, e->id);
-		struct vring_desc* desc = &vq->vring.desc[e->id];
+		struct vring_desc *desc = &vq->vring.desc[e->id];
 		desc->addr = 0;
 		desc->len = 0;
 		pkt_buf_free(vq->virtual_addresses[e->id]);
@@ -568,10 +568,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	uint32_t buf_idx;
 	uint16_t idx = 0; // Keep index of last found free descriptor and start searching from there
 	for (buf_idx = 0; buf_idx < num_bufs; ++buf_idx) {
-		struct pkt_buf* buf = bufs[buf_idx];
+		struct pkt_buf *buf = bufs[buf_idx];
 		// Find free desc index
 		for (; idx < vq->vring.num; ++idx) {
-			struct vring_desc* desc = &vq->vring.desc[idx];
+			struct vring_desc *desc = &vq->vring.desc[idx];
 			if (desc->addr == 0) {
 				break;
 			}

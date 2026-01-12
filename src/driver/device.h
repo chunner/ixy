@@ -32,51 +32,51 @@ struct device_stats;
 })
 
 struct ixy_device {
-	const char* pci_addr;
-	const char* driver_name;
+	const char *pci_addr;
+	const char *driver_name;
 	uint16_t num_rx_queues;
 	uint16_t num_tx_queues;
-	uint32_t (*rx_batch) (struct ixy_device* dev, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs);
-	uint32_t (*tx_batch) (struct ixy_device* dev, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs);
-	void (*read_stats) (struct ixy_device* dev, struct device_stats* stats);
-	void (*set_promisc) (struct ixy_device* dev, bool enabled);
-	uint32_t (*get_link_speed) (const struct ixy_device* dev);
+	uint32_t(*rx_batch) (struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs);
+	uint32_t(*tx_batch) (struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs);
+	void (*read_stats) (struct ixy_device *dev, struct device_stats *stats);
+	void (*set_promisc) (struct ixy_device *dev, bool enabled);
+	uint32_t(*get_link_speed) (const struct ixy_device *dev);
 	bool vfio;
 	int vfio_fd; // device fd
 	struct interrupts interrupts;
 };
 
-struct ixy_device* ixy_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout);
+struct ixy_device *ixy_init(const char *pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout);
 
 // Public stubs that forward the calls to the driver-specific implementations
-static inline uint32_t ixy_rx_batch(struct ixy_device* dev, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline uint32_t ixy_rx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return dev->rx_batch(dev, queue_id, bufs, num_bufs);
 }
 
-static inline uint32_t ixy_tx_batch(struct ixy_device* dev, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline uint32_t ixy_tx_batch(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return dev->tx_batch(dev, queue_id, bufs, num_bufs);
 }
 
-static inline void ixy_read_stats(struct ixy_device* dev, struct device_stats* stats) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void ixy_read_stats(struct ixy_device *dev, struct device_stats *stats) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	dev->read_stats(dev, stats);
 }
 
-static inline void ixy_set_promisc(struct ixy_device* dev, bool enabled) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void ixy_set_promisc(struct ixy_device *dev, bool enabled) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	dev->set_promisc(dev, enabled);
 }
 
-static inline uint32_t get_link_speed(const struct ixy_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline uint32_t get_link_speed(const struct ixy_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	return dev->get_link_speed(dev);
 }
 
 // calls ixy_tx_batch until all packets are queued with busy waiting
-static void ixy_tx_batch_busy_wait(struct ixy_device* dev, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void ixy_tx_batch_busy_wait(struct ixy_device *dev, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	uint32_t num_sent = 0;
 	while ((num_sent += ixy_tx_batch(dev, queue_id, bufs + num_sent, num_bufs - num_sent)) != num_bufs) {
 		// busy wait
@@ -89,72 +89,72 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 // simple compiler barriers (i.e., the same empty asm with dependency on memory as here) on x86
 // dpdk also defines an additional relaxed load/store for the registers that only uses a volatile access,  we skip that for simplicity
 
-static inline void set_reg32(uint8_t* addr, int reg, uint32_t value) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void set_reg32(uint8_t *addr, int reg, uint32_t value) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile ("" : : : "memory");
-	*((volatile uint32_t*) (addr + reg)) = value;
+	*((volatile uint32_t *) (addr + reg)) = value;
 }
 
 /* BIBO add */
-static inline void set_reg16(uint8_t* addr, int reg, uint16_t value) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void set_reg16(uint8_t *addr, int reg, uint16_t value) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile ("" : : : "memory");
-	*((volatile uint16_t*) (addr + reg)) = value;
+	*((volatile uint16_t *) (addr + reg)) = value;
 }
 
-static inline void set_reg8(uint8_t* addr, int reg, uint8_t value) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void set_reg8(uint8_t *addr, int reg, uint8_t value) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile ("" : : : "memory");
-	*((volatile uint8_t*) (addr + reg)) = value;
-}
-/* BIBO add */
-
-static inline uint32_t get_reg32(const uint8_t* addr, int reg) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	__asm__ volatile ("" : : : "memory");
-	return *((volatile uint32_t*) (addr + reg));
-}
-
-/* BIBO add */
-static inline uint16_t get_reg16(const uint8_t* addr, int reg) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	__asm__ volatile ("" : : : "memory");
-	return *((volatile uint16_t*) (addr + reg));
-}
-
-static inline uint8_t get_reg8(const uint8_t* addr, int reg) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	__asm__ volatile ("" : : : "memory");
-	return *((volatile uint8_t*) (addr + reg));
+	*((volatile uint8_t *) (addr + reg)) = value;
 }
 /* BIBO add */
 
-static inline void set_flags32(uint8_t* addr, int reg, uint32_t flags) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline uint32_t get_reg32(const uint8_t *addr, int reg) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	__asm__ volatile ("" : : : "memory");
+	return *((volatile uint32_t *) (addr + reg));
+}
+
+/* BIBO add */
+static inline uint16_t get_reg16(const uint8_t *addr, int reg) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	__asm__ volatile ("" : : : "memory");
+	return *((volatile uint16_t *) (addr + reg));
+}
+
+static inline uint8_t get_reg8(const uint8_t *addr, int reg) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	__asm__ volatile ("" : : : "memory");
+	return *((volatile uint8_t *) (addr + reg));
+}
+/* BIBO add */
+
+static inline void set_flags32(uint8_t *addr, int reg, uint32_t flags) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	set_reg32(addr, reg, get_reg32(addr, reg) | flags);
 }
 
-static inline void clear_flags32(uint8_t* addr, int reg, uint32_t flags) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void clear_flags32(uint8_t *addr, int reg, uint32_t flags) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	set_reg32(addr, reg, get_reg32(addr, reg) & ~flags);
 }
 
-static inline void wait_clear_reg32(const uint8_t* addr, int reg, uint32_t mask) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void wait_clear_reg32(const uint8_t *addr, int reg, uint32_t mask) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile ("" : : : "memory");
 	uint32_t cur = 0;
-	while (cur = *((volatile uint32_t*) (addr + reg)), (cur & mask) != 0) {
+	while (cur = *((volatile uint32_t *) (addr + reg)), (cur &mask) != 0) {
 		debug("waiting for flags 0x%08X in register 0x%05X to clear, current value 0x%08X", mask, reg, cur);
 		usleep(10000);
 		__asm__ volatile ("" : : : "memory");
 	}
 }
 
-static inline void wait_set_reg32(const uint8_t* addr, int reg, uint32_t mask) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static inline void wait_set_reg32(const uint8_t *addr, int reg, uint32_t mask) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile ("" : : : "memory");
 	uint32_t cur = 0;
-	while (cur = *((volatile uint32_t*) (addr + reg)), (cur & mask) != mask) {
+	while (cur = *((volatile uint32_t *) (addr + reg)), (cur &mask) != mask) {
 		debug("waiting for flags 0x%08X in register 0x%05X, current value 0x%08X", mask, reg, cur);
 		usleep(10000);
 		__asm__ volatile ("" : : : "memory");
@@ -164,28 +164,28 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 // getters/setters for pci io port resources
 
 static inline void write_io32(int fd, uint32_t value, size_t offset) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (pwrite(fd, &value, sizeof(value), offset) != sizeof(value))
 		error("pwrite io resource");
 	__asm__ volatile("" : : : "memory");
 }
 
 static inline void write_io16(int fd, uint16_t value, size_t offset) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (pwrite(fd, &value, sizeof(value), offset) != sizeof(value))
 		error("pwrite io resource");
 	__asm__ volatile("" : : : "memory");
 }
 
 static inline void write_io8(int fd, uint8_t value, size_t offset) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (pwrite(fd, &value, sizeof(value), offset) != sizeof(value))
 		error("pwrite io resource");
 	__asm__ volatile("" : : : "memory");
 }
 
 static inline uint32_t read_io32(int fd, size_t offset) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile("" : : : "memory");
 	uint32_t temp;
 	if (pread(fd, &temp, sizeof(temp), offset) != sizeof(temp))
@@ -194,7 +194,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 }
 
 static inline uint16_t read_io16(int fd, size_t offset) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile("" : : : "memory");
 	uint16_t temp;
 	if (pread(fd, &temp, sizeof(temp), offset) != sizeof(temp))
@@ -203,7 +203,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 }
 
 static inline uint8_t read_io8(int fd, size_t offset) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	__asm__ volatile("" : : : "memory");
 	uint8_t temp;
 	if (pread(fd, &temp, sizeof(temp), offset) != sizeof(temp))

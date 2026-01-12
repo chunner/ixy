@@ -24,29 +24,31 @@ static double get_time_diff_ms(struct timespec start, struct timespec end) {
 }
 
 XMmult_accel *xmmult_accel_device_init(const char *pci_addr, size_t dsize_in, size_t dsize_out) {
+    // define the file path for output logging
+    ixy_log_init("xmmult_accel_driver.log");
+    // remove any existing driver binding
     remove_driver(pci_addr);
 
     char iommu_path[PATH_MAX];
     snprintf(iommu_path, sizeof(iommu_path), "/sys/bus/pci/devices/%s/iommu_group", pci_addr);
-
     // 使用 access(..., F_OK) 检查文件是否存在
     if (access(iommu_path, F_OK) == 0) {
         // 文件存在，说明开启了 IOMMU，可以安全调用 vfio_init
         int vfio_fd = vfio_init(pci_addr);
         if (vfio_fd != -1) {
-            printf("IOMMU/VFIO mode enabled. Container FD: %d\n", vfio_fd);
+            info("IOMMU/VFIO mode enabled. Container FD: %d\n", vfio_fd);
             set_vfio_container(vfio_fd);
         }
     } else {
         // 文件不存在，说明没开 IOMMU，跳过 vfio_init 以免程序崩溃
-        printf("No IOMMU group found for device %s. Running in Legacy (Hugepages) mode.\n", pci_addr);
+        info("No IOMMU group found for device %s. Running in Legacy (Hugepages) mode.\n", pci_addr);
     }
 
     XMmult_accel *InstancePtr = calloc(1, sizeof(XMmult_accel));
     InstancePtr->Control_BaseAddress = (u64) pci_map_resource(pci_addr);
-    InstancePtr->dma_A = memory_allocate_dma(MAX_N * MAX_K * sizeof(dsize_in), 1);
-    InstancePtr->dma_B = memory_allocate_dma(MAX_K * MAX_M * sizeof(dsize_in), 1);
-    InstancePtr->dma_C = memory_allocate_dma(MAX_N * MAX_M * sizeof(dsize_out), 1);
+    InstancePtr->dma_A = memory_allocate_dma(MAX_N * MAX_K * dsize_in, 1);
+    InstancePtr->dma_B = memory_allocate_dma(MAX_K * MAX_M * dsize_in, 1);
+    InstancePtr->dma_C = memory_allocate_dma(MAX_N * MAX_M * dsize_out, 1);
 
     InstancePtr->IsReady = XIL_COMPONENT_IS_READY;
     XMmult_accel_InterruptGlobalDisable(InstancePtr, MMULT_FP16);
@@ -65,8 +67,8 @@ int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uin
     clock_gettime(CLOCK_MONOTONIC, &t_start);
 
     // Copy input matrices to DMA buffers
-    memcpy(InstancePtr->dma_A.virt, (void *) A, N * K * dsize_in);
-    memcpy(InstancePtr->dma_B.virt, (void *) B, K * M * dsize_in);
+    memcpy(InstancePtr->dma_A.virt, (void *) A,(size_t)N * (size_t)K * dsize_in);
+    memcpy(InstancePtr->dma_B.virt, (void *) B, (size_t)K * (size_t)M * dsize_in);
 
     clock_gettime(CLOCK_MONOTONIC, &t_memcpy_in);
 
@@ -105,7 +107,7 @@ int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uin
 
     _mm_mfence();
     // 6. Copy result back to C
-    memcpy((void *) C, InstancePtr->dma_C.virt, N * M * sizeof(dsize_out));
+    memcpy((void *) C, InstancePtr->dma_C.virt, (size_t)N * (size_t)M * dsize_out);
 
     clock_gettime(CLOCK_MONOTONIC, &t_memcpy_out);
 

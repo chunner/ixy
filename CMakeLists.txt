@@ -3,7 +3,18 @@ project(ixy C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_compile_options(-g -O2 -march=native -fomit-frame-pointer -std=c11
+# add_compile_options(-g -O2 -march=native -fomit-frame-pointer -std=c11
+# 	-D_XOPEN_SOURCE=700
+# 	-D_DEFAULT_SOURCE
+# 	-Wall
+# 	-Wextra
+# 	-Wno-unused-parameter
+# 	-Wno-unused-function
+# 	-Wformat=2
+# )
+
+# debug mod
+add_compile_options(-g -O0 -march=native -fno-omit-frame-pointer -std=c11
 	-D_XOPEN_SOURCE=700
 	-D_DEFAULT_SOURCE
 	-Wall
@@ -17,10 +28,15 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-set(SOURCE_COMMON src/pci.c src/memory.c src/stats.c src/interrupts.c src/driver/device.c src/driver/ixgbe.c src/driver/virtio.c src/driver/cdma.c src/libixy-vfio.c src/driver/xmmult_accel.c src/driver/xmmult_accel_tools.c)
-
+set(SOURCE_COMMON
+    src/pci.c src/memory.c src/stats.c src/interrupts.c
+    src/driver/device.c src/driver/ixgbe.c src/driver/virtio.c
+    src/libixy-vfio.c
+    src/driver/xmmult_accel.c src/driver/xmmult_accel_tools.c
+    src/log.c
+)
 add_executable(xmmult_accel_tb src/app/xmmult_accel_tb.c ${SOURCE_COMMON})
-add_executable(ixy-pktgen src/app/ixy-pktgen.c ${SOURCE_COMMON})
-add_executable(ixy-fwd src/app/ixy-fwd.c ${SOURCE_COMMON})
-add_executable(ixy-pcap src/app/ixy-pcap.c ${SOURCE_COMMON})
-add_library(ixy-vfio SHARED src/libixy-vfio.c)
+# add_executable(ixy-pktgen src/app/ixy-pktgen.c ${SOURCE_COMMON})
+# add_executable(ixy-fwd src/app/ixy-fwd.c ${SOURCE_COMMON})
+# add_executable(ixy-pcap src/app/ixy-pcap.c ${SOURCE_COMMON})
+# add_library(ixy-vfio SHARED src/libixy-vfio.c)

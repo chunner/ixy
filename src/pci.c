@@ -12,8 +12,8 @@
 // QEMU's native Virtio-Net device uses PIO to access BAR1
 //#define PIO
 
-void remove_driver(const char* pci_addr) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+void remove_driver(const char *pci_addr) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/driver/unbind", pci_addr);
 	int fd = open(path, O_WRONLY);
@@ -27,8 +27,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	check_err(close(fd), "close");
 }
 
-void enable_dma(const char* pci_addr) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+void enable_dma(const char *pci_addr) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/config", pci_addr);
 	int fd = check_err(open(path, O_RDWR), "open pci config");
@@ -43,8 +43,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	check_err(close(fd), "close");
 }
 
-uint8_t* pci_map_resource(const char* pci_addr) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+uint8_t *pci_map_resource(const char *pci_addr) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 #ifdef PIO
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/resource1", pci_addr);
@@ -57,13 +57,13 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	int fd = check_err(open(path, O_RDWR), "open pci resource");
 	struct stat stat;
 	check_err(fstat(fd, &stat), "stat pci resource");
-	uint8_t* hw = (uint8_t*) check_err(mmap(NULL, stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0), "mmap pci resource");
+	uint8_t *hw = (uint8_t *) check_err(mmap(NULL, stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0), "mmap pci resource");
 	check_err(close(fd), "close pci resource");
 	return hw;
 }
 
-int pci_open_resource(const char* pci_addr, const char* resource, int flags) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+int pci_open_resource(const char *pci_addr, const char *resource, int flags) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	char path[PATH_MAX];
 	snprintf(path, PATH_MAX, "/sys/bus/pci/devices/%s/%s", pci_addr, resource);
 	debug("Opening PCI resource at %s", path);

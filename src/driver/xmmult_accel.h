@@ -135,7 +135,7 @@ extern "C" {
 
     XMmult_accel *xmmult_accel_device_init(const char *pci_addr, size_t dsize_in, size_t dsize_out);
     int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uintptr_t B, uintptr_t C,
-        int N, int K, int M, int updateA, size_t dsize_int, size_t dsize_out);
+        int N, int K, int M, int updateA, size_t dsize_int, size_t dsize_out, uint64_t device_offset);
 
 #ifdef __cplusplus
 }

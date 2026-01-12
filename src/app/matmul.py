@@ -2,9 +2,9 @@ import numpy as np
 import accel_ip
 import os
 
-pci_addr = os.environ.get('PCI_ADDR')
+pci_addr = "0000:00:04.0"
 
-N, K, M = 64, 768, 768 
+N, K, M = 6, 8, 10
 A = np.random.randint(-10, 10, size=(N, K)).astype(np.int8, order='C')
 B = np.random.randint(-10, 10, size=(K, M)).astype(np.int8, order='C')
 
@@ -19,7 +19,7 @@ print(C1)
 
 
 
-accel = accel_ip.xmmult_accel_device_init(pci_addr)
+accel = accel_ip.xmmult_accel_device_init(pci_addr, 1, 4)
 C2= np.zeros((A.shape[0], B.shape[1]), dtype=np.int32, order='C')
 accel_ip.xmmult_accel_execute(
     accel, 
@@ -29,7 +29,11 @@ accel_ip.xmmult_accel_execute(
     A.shape[0], 
     A.shape[1], 
     B.shape[1], 
-    1)
+    1,
+    1, # dsize_in = 1 byte
+    4, # dsize_out = 4 bytes
+    0x1000 # device_offset : 0x1000 for mmult_int8
+    )
 print("\nMat C (by accel_ip):")
 print(C2)
 

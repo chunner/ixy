@@ -16,7 +16,7 @@
 #include "interrupts.h"
 #include "stats.h"
 
-const char* driver_name = "ixy-ixgbe";
+const char *driver_name = "ixy-ixgbe";
 
 const int MAX_RX_QUEUE_ENTRIES = 4096;
 const int MAX_TX_QUEUE_ENTRIES = 4096;
@@ -33,25 +33,25 @@ const uint64_t INTERRUPT_INITIAL_INTERVAL = 1000 * 1000 * 1000;
 
 // allocated for each rx queue, keeps state for the receive function
 struct ixgbe_rx_queue {
-	volatile union ixgbe_adv_rx_desc* descriptors;
-	struct mempool* mempool;
+	volatile union ixgbe_adv_rx_desc *descriptors;
+	struct mempool *mempool;
 	uint16_t num_entries;
 	// position we are reading from
 	uint16_t rx_index;
 	// virtual addresses to map descriptors back to their mbuf for freeing
-	void* virtual_addresses[];
+	void *virtual_addresses[];
 };
 
 // allocated for each tx queue, keeps state for the transmit function
 struct ixgbe_tx_queue {
-	volatile union ixgbe_adv_tx_desc* descriptors;
+	volatile union ixgbe_adv_tx_desc *descriptors;
 	uint16_t num_entries;
 	// position to clean up descriptors that where sent out by the nic
 	uint16_t clean_index;
 	// position to insert packets for transmission
 	uint16_t tx_index;
 	// virtual addresses to map descriptors back to their mbuf for freeing
-	void* virtual_addresses[];
+	void *virtual_addresses[];
 };
 
 /**
@@ -61,8 +61,8 @@ struct ixgbe_tx_queue {
  * @param queue queue to map the corresponding interrupt to
  * @param msix_vector the vector to map to the corresponding queue
  */
-static void set_ivar(struct ixgbe_device* dev, int8_t direction, int8_t queue, int8_t msix_vector) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void set_ivar(struct ixgbe_device *dev, int8_t direction, int8_t queue, int8_t msix_vector) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	u32 ivar, index;
 	msix_vector |= IXGBE_IVAR_ALLOC_VAL;
 	index = ((16 * (queue & 1)) + (8 * direction));
@@ -76,8 +76,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * Clear all interrupt masks for all queues.
  * @param dev The device.
  */
-static void clear_interrupts(struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void clear_interrupts(struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask
 	set_reg32(dev->addr, IXGBE_EIMC, IXGBE_IRQ_CLEAR_MASK);
 	get_reg32(dev->addr, IXGBE_EICR);
@@ -88,8 +88,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * @param dev The device.
  * @param queue_id The ID of the queue to clear.
  */
-static void clear_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void clear_interrupt(struct ixgbe_device *dev, uint16_t queue_id) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask
 	set_reg32(dev->addr, IXGBE_EIMC, 1 << queue_id);
 	get_reg32(dev->addr, IXGBE_EICR);
@@ -99,8 +99,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * Disable all interrupts for all queues.
  * @param dev The device.
  */
-static void disable_interrupts(struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void disable_interrupts(struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask to stop from interrupts being generated
 	set_reg32(dev->addr, IXGBE_EIMS, 0x00000000);
 	clear_interrupts(dev);
@@ -111,8 +111,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * @param dev
  * @param queue_id The ID of the queue to disable.
  */
-static void disable_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void disable_interrupt(struct ixgbe_device *dev, uint16_t queue_id) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Clear interrupt mask to stop from interrupts being generated
 	u32 mask = get_reg32(dev->addr, IXGBE_EIMS);
 	mask &= ~(1 << queue_id);
@@ -126,8 +126,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * @param dev The device.
  * @param queue_id The ID of the queue to enable.
  */
-static void enable_msi_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void enable_msi_interrupt(struct ixgbe_device *dev, uint16_t queue_id) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Step 1: The software driver associates between Tx and Rx interrupt causes and the EICR
 	// register by setting the IVAR[n] registers.
 	set_ivar(dev, 0, queue_id, 0);
@@ -161,8 +161,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * @param dev The device.
  * @param queue_id The ID of the queue to enable.
  */
-static void enable_msix_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void enable_msix_interrupt(struct ixgbe_device *dev, uint16_t queue_id) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// Step 1: The software driver associates between interrupt causes and MSI-X vectors and the
 	// throttling timers EITR[n] by programming the IVAR[n] and IVAR_MISC registers.
 	uint32_t gpie = get_reg32(dev->addr, IXGBE_GPIE);
@@ -213,21 +213,21 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * @param dev The device.
  * @param queue_id The ID of the queue to enable.
  */
-static void enable_interrupt(struct ixgbe_device* dev, uint16_t queue_id) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void enable_interrupt(struct ixgbe_device *dev, uint16_t queue_id) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (!dev->ixy.interrupts.interrupts_enabled) {
 		return;
 	}
 	switch (dev->ixy.interrupts.interrupt_type) {
-		case VFIO_PCI_MSIX_IRQ_INDEX:
-			enable_msix_interrupt(dev, queue_id);
-			break;
-		case VFIO_PCI_MSI_IRQ_INDEX:
-			enable_msi_interrupt(dev, queue_id);
-			break;
-		default:
-			warn("Interrupt type not supported: %d", dev->ixy.interrupts.interrupt_type);
-			return;
+	case VFIO_PCI_MSIX_IRQ_INDEX:
+		enable_msix_interrupt(dev, queue_id);
+		break;
+	case VFIO_PCI_MSI_IRQ_INDEX:
+		enable_msi_interrupt(dev, queue_id);
+		break;
+	default:
+		warn("Interrupt type not supported: %d", dev->ixy.interrupts.interrupt_type);
+		return;
 	}
 }
 
@@ -235,47 +235,49 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * Setup interrupts by enabling VFIO interrupts.
  * @param dev The device.
  */
-static void setup_interrupts(struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void setup_interrupts(struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (!dev->ixy.interrupts.interrupts_enabled) {
 		return;
 	}
-	dev->ixy.interrupts.queues = (struct interrupt_queues*) malloc(dev->ixy.num_rx_queues * sizeof(struct interrupt_queues));
+	dev->ixy.interrupts.queues = (struct interrupt_queues *) malloc(dev->ixy.num_rx_queues * sizeof(struct interrupt_queues));
 	dev->ixy.interrupts.interrupt_type = vfio_setup_interrupt(dev->ixy.vfio_fd);
 	switch (dev->ixy.interrupts.interrupt_type) {
-		case VFIO_PCI_MSIX_IRQ_INDEX: {
-			for (uint32_t rx_queue = 0; rx_queue < dev->ixy.num_rx_queues; rx_queue++) {
-				int vfio_event_fd = vfio_enable_msix(dev->ixy.vfio_fd, rx_queue);
-				int vfio_epoll_fd = vfio_epoll_ctl(vfio_event_fd);
-				dev->ixy.interrupts.queues[rx_queue].vfio_event_fd = vfio_event_fd;
-				dev->ixy.interrupts.queues[rx_queue].vfio_epoll_fd = vfio_epoll_fd;
-				dev->ixy.interrupts.queues[rx_queue].moving_avg.length = 0;
-				dev->ixy.interrupts.queues[rx_queue].moving_avg.index = 0;
-				dev->ixy.interrupts.queues[rx_queue].interval = INTERRUPT_INITIAL_INTERVAL;
-			}
-			break;
-		}
-		case VFIO_PCI_MSI_IRQ_INDEX: {
-			int vfio_event_fd = vfio_enable_msi(dev->ixy.vfio_fd);
+	case VFIO_PCI_MSIX_IRQ_INDEX:
+	{
+		for (uint32_t rx_queue = 0; rx_queue < dev->ixy.num_rx_queues; rx_queue++) {
+			int vfio_event_fd = vfio_enable_msix(dev->ixy.vfio_fd, rx_queue);
 			int vfio_epoll_fd = vfio_epoll_ctl(vfio_event_fd);
-			for (uint32_t rx_queue = 0; rx_queue < dev->ixy.num_rx_queues; rx_queue++) {
-				dev->ixy.interrupts.queues[rx_queue].vfio_event_fd = vfio_event_fd;
-				dev->ixy.interrupts.queues[rx_queue].vfio_epoll_fd = vfio_epoll_fd;
-				dev->ixy.interrupts.queues[rx_queue].moving_avg.length = 0;
-				dev->ixy.interrupts.queues[rx_queue].moving_avg.index = 0;
-				dev->ixy.interrupts.queues[rx_queue].interval = INTERRUPT_INITIAL_INTERVAL;
-			}
-			break;
+			dev->ixy.interrupts.queues[rx_queue].vfio_event_fd = vfio_event_fd;
+			dev->ixy.interrupts.queues[rx_queue].vfio_epoll_fd = vfio_epoll_fd;
+			dev->ixy.interrupts.queues[rx_queue].moving_avg.length = 0;
+			dev->ixy.interrupts.queues[rx_queue].moving_avg.index = 0;
+			dev->ixy.interrupts.queues[rx_queue].interval = INTERRUPT_INITIAL_INTERVAL;
 		}
-		default:
-			warn("Interrupt type not supported: %d", dev->ixy.interrupts.interrupt_type);
-			return;
+		break;
+	}
+	case VFIO_PCI_MSI_IRQ_INDEX:
+	{
+		int vfio_event_fd = vfio_enable_msi(dev->ixy.vfio_fd);
+		int vfio_epoll_fd = vfio_epoll_ctl(vfio_event_fd);
+		for (uint32_t rx_queue = 0; rx_queue < dev->ixy.num_rx_queues; rx_queue++) {
+			dev->ixy.interrupts.queues[rx_queue].vfio_event_fd = vfio_event_fd;
+			dev->ixy.interrupts.queues[rx_queue].vfio_epoll_fd = vfio_epoll_fd;
+			dev->ixy.interrupts.queues[rx_queue].moving_avg.length = 0;
+			dev->ixy.interrupts.queues[rx_queue].moving_avg.index = 0;
+			dev->ixy.interrupts.queues[rx_queue].interval = INTERRUPT_INITIAL_INTERVAL;
+		}
+		break;
+	}
+	default:
+		warn("Interrupt type not supported: %d", dev->ixy.interrupts.interrupt_type);
+		return;
 	}
 }
 
 // see section 4.6.4
-static void init_link(struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void init_link(struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// should already be set by the eeprom config, maybe we shouldn't override it here to support weirdo nics?
 	set_reg32(dev->addr, IXGBE_AUTOC, (get_reg32(dev->addr, IXGBE_AUTOC) & ~IXGBE_AUTOC_LMS_MASK) | IXGBE_AUTOC_LMS_10G_SERIAL);
 	set_reg32(dev->addr, IXGBE_AUTOC, (get_reg32(dev->addr, IXGBE_AUTOC) & ~IXGBE_AUTOC_10G_PMA_PMD_MASK) | IXGBE_AUTOC_10G_XAUI);
@@ -284,10 +286,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	// datasheet wants us to wait for the link here, but we can continue and wait afterwards
 }
 
-static void start_rx_queue(struct ixgbe_device* dev, int queue_id) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void start_rx_queue(struct ixgbe_device *dev, int queue_id) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	debug("starting rx queue %d", queue_id);
-	struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*)(dev->rx_queues)) + queue_id;
+	struct ixgbe_rx_queue *queue = ((struct ixgbe_rx_queue *) (dev->rx_queues)) + queue_id;
 	// 2048 as pktbuf size is strictly speaking incorrect:
 	// we need a few headers (1 cacheline), so there's only 1984 bytes left for the device
 	// but the 82599 can only handle sizes in increments of 1 kb; but this is fine since our max packet size
@@ -300,8 +302,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		error("number of queue entries must be a power of 2");
 	}
 	for (int i = 0; i < queue->num_entries; i++) {
-		volatile union ixgbe_adv_rx_desc* rxd = queue->descriptors + i;
-		struct pkt_buf* buf = pkt_buf_alloc(queue->mempool);
+		volatile union ixgbe_adv_rx_desc *rxd = queue->descriptors + i;
+		struct pkt_buf *buf = pkt_buf_alloc(queue->mempool);
 		if (!buf) {
 			error("failed to allocate rx descriptor");
 		}
@@ -319,10 +321,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	set_reg32(dev->addr, IXGBE_RDT(queue_id), queue->num_entries - 1);
 }
 
-static void start_tx_queue(struct ixgbe_device* dev, int queue_id) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void start_tx_queue(struct ixgbe_device *dev, int queue_id) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	debug("starting tx queue %d", queue_id);
-	struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*)(dev->tx_queues)) + queue_id;
+	struct ixgbe_tx_queue *queue = ((struct ixgbe_tx_queue *) (dev->tx_queues)) + queue_id;
 	if (queue->num_entries & (queue->num_entries - 1)) {
 		error("number of queue entries must be a power of 2");
 	}
@@ -336,8 +338,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 
 // see section 4.6.7
 // it looks quite complicated in the data sheet, but it's actually really easy because we don't need fancy features
-static void init_rx(struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void init_rx(struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// make sure that rx is disabled while re-configuring it
 	// the datasheet also wants us to disable some crypto-offloading related rx paths (but we don't care about them)
 	clear_flags32(dev->addr, IXGBE_RXCTRL, IXGBE_RXCTRL_RXEN);
@@ -377,10 +379,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		set_reg32(dev->addr, IXGBE_RDH(i), 0);
 		set_reg32(dev->addr, IXGBE_RDT(i), 0);
 		// private data for the driver, 0-initialized
-		struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*)(dev->rx_queues)) + i;
+		struct ixgbe_rx_queue *queue = ((struct ixgbe_rx_queue *) (dev->rx_queues)) + i;
 		queue->num_entries = NUM_RX_QUEUE_ENTRIES;
 		queue->rx_index = 0;
-		queue->descriptors = (union ixgbe_adv_rx_desc*) mem.virt;
+		queue->descriptors = (union ixgbe_adv_rx_desc *) mem.virt;
 	}
 
 	// last step is to set some magic bits mentioned in the last sentence in 4.6.7
@@ -396,8 +398,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 }
 
 // see section 4.6.8
-static void init_tx(struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void init_tx(struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	// crc offload and small packet padding
 	set_flags32(dev->addr, IXGBE_HLREG0, IXGBE_HLREG0_TXCRCEN | IXGBE_HLREG0_TXPADEN);
 
@@ -437,16 +439,16 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		set_reg32(dev->addr, IXGBE_TXDCTL(i), txdctl);
 
 		// private data for the driver, 0-initialized
-		struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*)(dev->tx_queues)) + i;
+		struct ixgbe_tx_queue *queue = ((struct ixgbe_tx_queue *) (dev->tx_queues)) + i;
 		queue->num_entries = NUM_TX_QUEUE_ENTRIES;
-		queue->descriptors = (union ixgbe_adv_tx_desc*) mem.virt;
+		queue->descriptors = (union ixgbe_adv_tx_desc *) mem.virt;
 	}
 	// final step: enable DMA
 	set_reg32(dev->addr, IXGBE_DMATXCTL, IXGBE_DMATXCTL_TE);
 }
 
-static void wait_for_link(const struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void wait_for_link(const struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	info("Waiting for link...");
 	int32_t max_wait = 10000000; // 10 seconds in us
 	uint32_t poll_interval = 100000; // 10 ms in us
@@ -458,8 +460,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 }
 
 // see section 4.6.3
-static void reset_and_init(struct ixgbe_device* dev) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+static void reset_and_init(struct ixgbe_device *dev) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	info("Resetting device %s", dev->ixy.pci_addr);
 
 	// section 4.6.3.1 - disable all interrupts
@@ -523,8 +525,8 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
  * 	- if set to 0 the interrupt is disabled entirely)
  * @return The initialized IXGBE device.
  */
-struct ixy_device* ixgbe_init(const char* pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+struct ixy_device *ixgbe_init(const char *pci_addr, uint16_t rx_queues, uint16_t tx_queues, int interrupt_timeout) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
 	if (getuid()) {
 		warn("Not running as root, this will probably fail");
 	}
@@ -536,7 +538,7 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 	}
 
 	// Allocate memory for the ixgbe device that will be returned
-	struct ixgbe_device* dev = (struct ixgbe_device*) malloc(sizeof(struct ixgbe_device));
+	struct ixgbe_device *dev = (struct ixgbe_device *) malloc(sizeof(struct ixgbe_device));
 	dev->ixy.pci_addr = strdup(pci_addr);
 
 	// Check if we want the VFIO stuff
@@ -580,34 +582,34 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		debug("mapping BAR0 region via pci file...");
 		dev->addr = pci_map_resource(pci_addr);
 	}
-	dev->rx_queues = calloc(rx_queues, sizeof(struct ixgbe_rx_queue) + sizeof(void*) * MAX_RX_QUEUE_ENTRIES);
-	dev->tx_queues = calloc(tx_queues, sizeof(struct ixgbe_tx_queue) + sizeof(void*) * MAX_TX_QUEUE_ENTRIES);
+	dev->rx_queues = calloc(rx_queues, sizeof(struct ixgbe_rx_queue) + sizeof(void *) * MAX_RX_QUEUE_ENTRIES);
+	dev->tx_queues = calloc(tx_queues, sizeof(struct ixgbe_tx_queue) + sizeof(void *) * MAX_TX_QUEUE_ENTRIES);
 	reset_and_init(dev);
 	return &dev->ixy;
 }
 
-uint32_t ixgbe_get_link_speed(const struct ixy_device* ixy) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
+uint32_t ixgbe_get_link_speed(const struct ixy_device *ixy) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct ixgbe_device *dev = IXY_TO_IXGBE(ixy);
 	uint32_t links = get_reg32(dev->addr, IXGBE_LINKS);
 	if (!(links & IXGBE_LINKS_UP)) {
 		return 0;
 	}
 	switch (links & IXGBE_LINKS_SPEED_82599) {
-		case IXGBE_LINKS_SPEED_100_82599:
-			return 100;
-		case IXGBE_LINKS_SPEED_1G_82599:
-			return 1000;
-		case IXGBE_LINKS_SPEED_10G_82599:
-			return 10000;
-		default:
-			return 0;
+	case IXGBE_LINKS_SPEED_100_82599:
+		return 100;
+	case IXGBE_LINKS_SPEED_1G_82599:
+		return 1000;
+	case IXGBE_LINKS_SPEED_10G_82599:
+		return 10000;
+	default:
+		return 0;
 	}
 }
 
-void ixgbe_set_promisc(struct ixy_device* ixy, bool enabled) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
+void ixgbe_set_promisc(struct ixy_device *ixy, bool enabled) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct ixgbe_device *dev = IXY_TO_IXGBE(ixy);
 	if (enabled) {
 		info("enabling promisc mode");
 		set_flags32(dev->addr, IXGBE_FCTRL, IXGBE_FCTRL_MPE | IXGBE_FCTRL_UPE);
@@ -619,9 +621,9 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 
 // read stat counters and accumulate in stats
 // stats may be NULL to just reset the counters
-void ixgbe_read_stats(struct ixy_device* ixy, struct device_stats* stats) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
+void ixgbe_read_stats(struct ixy_device *ixy, struct device_stats *stats) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct ixgbe_device *dev = IXY_TO_IXGBE(ixy);
 	uint32_t rx_pkts = get_reg32(dev->addr, IXGBE_GPRC);
 	uint32_t tx_pkts = get_reg32(dev->addr, IXGBE_GPTC);
 	uint64_t rx_bytes = get_reg32(dev->addr, IXGBE_GORCL) + (((uint64_t) get_reg32(dev->addr, IXGBE_GORCH)) << 32);
@@ -641,11 +643,11 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 // try to receive a single packet if one is available, non-blocking
 // see datasheet section 7.1.9 for an explanation of the rx ring structure
 // tl;dr: we control the tail of the queue, the hardware the head
-uint32_t ixgbe_rx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
+uint32_t ixgbe_rx_batch(struct ixy_device *ixy, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct ixgbe_device *dev = IXY_TO_IXGBE(ixy);
 
-	struct interrupt_queues* interrupt = NULL;
+	struct interrupt_queues *interrupt = NULL;
 	bool interrupts_enabled = ixy->interrupts.interrupts_enabled;
 
 	if (interrupts_enabled) {
@@ -656,13 +658,13 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		vfio_epoll_wait(interrupt->vfio_epoll_fd, 10, dev->ixy.interrupts.timeout_ms);
 	}
 
-	struct ixgbe_rx_queue* queue = ((struct ixgbe_rx_queue*) (dev->rx_queues)) + queue_id;
+	struct ixgbe_rx_queue *queue = ((struct ixgbe_rx_queue *) (dev->rx_queues)) + queue_id;
 	uint16_t rx_index = queue->rx_index; // rx index we checked in the last run of this function
 	uint16_t last_rx_index = rx_index; // index of the descriptor we checked in the last iteration of the loop
 	uint32_t buf_index;
 	for (buf_index = 0; buf_index < num_bufs; buf_index++) {
 		// rx descriptors are explained in 7.1.5
-		volatile union ixgbe_adv_rx_desc* desc_ptr = queue->descriptors + rx_index;
+		volatile union ixgbe_adv_rx_desc *desc_ptr = queue->descriptors + rx_index;
 		uint32_t status = desc_ptr->wb.upper.status_error;
 		if (status & IXGBE_RXDADV_STAT_DD) {
 			if (!(status & IXGBE_RXDADV_STAT_EOP)) {
@@ -670,12 +672,12 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 			}
 			// got a packet, read and copy the whole descriptor
 			union ixgbe_adv_rx_desc desc = *desc_ptr;
-			struct pkt_buf* buf = (struct pkt_buf*) queue->virtual_addresses[rx_index];
+			struct pkt_buf *buf = (struct pkt_buf *) queue->virtual_addresses[rx_index];
 			buf->size = desc.wb.upper.length;
 			// this would be the place to implement RX offloading by translating the device-specific flags
 			// to an independent representation in the buf (similiar to how DPDK works)
 			// need a new mbuf for the descriptor
-			struct pkt_buf* new_buf = pkt_buf_alloc(queue->mempool);
+			struct pkt_buf *new_buf = pkt_buf_alloc(queue->mempool);
 			if (!new_buf) {
 				// we could handle empty mempools more gracefully here, but it would be quite messy...
 				// make your mempools large enough
@@ -729,10 +731,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 // we control the tail, hardware the head
 // huge performance gains possible here by sending packets in batches - writing to TDT for every packet is not efficient
 // returns the number of packets transmitted, will not block when the queue is full
-uint32_t ixgbe_tx_batch(struct ixy_device* ixy, uint16_t queue_id, struct pkt_buf* bufs[], uint32_t num_bufs) {
-fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
-	struct ixgbe_device* dev = IXY_TO_IXGBE(ixy);
-	struct ixgbe_tx_queue* queue = ((struct ixgbe_tx_queue*)(dev->tx_queues)) + queue_id;
+uint32_t ixgbe_tx_batch(struct ixy_device *ixy, uint16_t queue_id, struct pkt_buf *bufs[], uint32_t num_bufs) {
+	fprintf(ixy_log_fp(), "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTION__);
+	struct ixgbe_device *dev = IXY_TO_IXGBE(ixy);
+	struct ixgbe_tx_queue *queue = ((struct ixgbe_tx_queue *) (dev->tx_queues)) + queue_id;
 	// the descriptor is explained in section 7.2.3.2.4
 	// we just use a struct copy & pasted from intel, but it basically has two formats (hence a union):
 	// 1. the write-back format which is written by the NIC once sending it is finished this is used in step 1
@@ -758,13 +760,13 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		if (cleanup_to >= queue->num_entries) {
 			cleanup_to -= queue->num_entries;
 		}
-		volatile union ixgbe_adv_tx_desc* txd = queue->descriptors + cleanup_to;
+		volatile union ixgbe_adv_tx_desc *txd = queue->descriptors + cleanup_to;
 		uint32_t status = txd->wb.status;
 		// hardware sets this flag as soon as it's sent out, we can give back all bufs in the batch back to the mempool
 		if (status & IXGBE_ADVTXD_STAT_DD) {
 			int32_t i = clean_index;
 			while (true) {
-				struct pkt_buf* buf = queue->virtual_addresses[i];
+				struct pkt_buf *buf = queue->virtual_addresses[i];
 				pkt_buf_free(buf);
 				if (i == cleanup_to) {
 					break;
@@ -789,10 +791,10 @@ fprintf(stdout, "[LOG]: call_stack: %s: %4d: %s\n", __FILE__, __LINE__, __FUNCTI
 		if (clean_index == next_index) {
 			break;
 		}
-		struct pkt_buf* buf = bufs[sent];
+		struct pkt_buf *buf = bufs[sent];
 		// remember virtual address to clean it up later
-		queue->virtual_addresses[queue->tx_index] = (void*) buf;
-		volatile union ixgbe_adv_tx_desc* txd = queue->descriptors + queue->tx_index;
+		queue->virtual_addresses[queue->tx_index] = (void *) buf;
+		volatile union ixgbe_adv_tx_desc *txd = queue->descriptors + queue->tx_index;
 		queue->tx_index = next_index;
 		// NIC reads from here
 		txd->read.buffer_addr = buf->buf_addr_phy + offsetof(struct pkt_buf, data);
