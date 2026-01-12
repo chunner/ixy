@@ -83,10 +83,8 @@ extern "C" {
 // Device Offset:
 // 0x0000 : mmult_fp16
 // 0x1000 : mmult_int8
-    enum {
-        MMULT_FP16 = 0x0000,
-        MMULT_INT8 = 0x1000
-    };
+#define MMULT_FP16 0x0000
+#define MMULT_INT8 0x1000
 
 
 
