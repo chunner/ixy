@@ -80,7 +80,7 @@ int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uin
 
     clock_gettime(CLOCK_MONOTONIC, &t_idle);
 
-    // printf("xmmult_accel is idle, proceeding with execution.\n");
+    info("xmmult_accel is idle, proceeding with execution.\n");
     // 2. Set parameters
     XMmult_accel_Set_N(InstancePtr, N, device_offset);
     XMmult_accel_Set_K(InstancePtr, K, device_offset);
@@ -96,15 +96,15 @@ int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uin
 
     clock_gettime(CLOCK_MONOTONIC, &t_setup);
 
-    // printf("Parameters and pointers set, starting accelerator.\n");
+    info("Parameters and pointers set, starting accelerator.\n");
     // 4. Start the accelerator
     XMmult_accel_Start(InstancePtr, device_offset);
 
     _mm_mfence();
-    // printf("Accelerator started, waiting for completion.\n");
+    info("Accelerator started, waiting for completion.\n");
     // 5. Wait for Done
     while (XMmult_accel_IsDone(InstancePtr, device_offset) == 0);
-    // printf("xmmult_accel execution completed.\n");
+    info("xmmult_accel execution completed.\n");
 
     clock_gettime(CLOCK_MONOTONIC, &t_compute);
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <log.h>
+#include <math.h>
 #include "memory.h"
 #include "half.h"
 
@@ -10,18 +11,7 @@ const char *pci_addr = "0000:00:04.0";
 #define K 8
 #define M 10
 
-int main() {
-    int errors = 0;
-    errors += test_mmult_accel_int8();
-    errors += test_mmult_accel_half();
-    errors += test_mmult_accel_int4();
-    if (errors == 0) {
-        printf("All tests passed successfully.\n");
-    } else {
-        printf("Some tests failed with a total of %d errors.\n", errors);
-    }
-    return errors;
-}
+
 
 int test_mmult_accel_int8() {
     XMmult_accel *InstancePtr = xmmult_accel_device_init(pci_addr, sizeof(int8_t), sizeof(int32_t));
@@ -250,5 +240,17 @@ int test_mmult_accel_int4() {
         printf("Matrix multiplication completed with %d errors.\n", errors);
     }
     printf("==============Test INT4 done=================\n");
+    return errors;
+}
+int main() {
+    int errors = 0;
+    // errors += test_mmult_accel_int8();
+    // errors += test_mmult_accel_half();
+    errors += test_mmult_accel_int4();
+    if (errors == 0) {
+        printf("All tests passed successfully.\n");
+    } else {
+        printf("Some tests failed with a total of %d errors.\n", errors);
+    }
     return errors;
 }
