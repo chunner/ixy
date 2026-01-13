@@ -23,7 +23,7 @@ static double get_time_diff_ms(struct timespec start, struct timespec end) {
     return (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_nsec - start.tv_nsec) / 1000000.0;
 }
 
-XMmult_accel *xmmult_accel_device_init(const char *pci_addr, size_t dsize_in, size_t dsize_out) {
+XMmult_accel *xmmult_accel_device_init(const char *pci_addr, float dsize_in, float dsize_out) {
     // define the file path for output logging
     ixy_log_init("xmmult_accel_driver.log");
     // remove any existing driver binding
@@ -57,11 +57,14 @@ XMmult_accel *xmmult_accel_device_init(const char *pci_addr, size_t dsize_in, si
     XMmult_accel_InterruptGlobalDisable(InstancePtr, MMULT_INT8);
     XMmult_accel_DisableAutoRestart(InstancePtr, MMULT_INT8);
 
+    XMmult_accel_InterruptGlobalDisable(InstancePtr, MMULT_INT4);
+    XMmult_accel_DisableAutoRestart(InstancePtr, MMULT_INT4);
+
     _mm_mfence();
     return InstancePtr;
 }
 int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uintptr_t B, uintptr_t C,
-    int N, int K, int M, int updateA, size_t dsize_in, size_t dsize_out, uint64_t device_offset) {
+    int N, int K, int M, int updateA, float dsize_in, float dsize_out, uint64_t device_offset) {
     struct timespec t_start, t_memcpy_in, t_idle, t_setup, t_compute, t_memcpy_out;
 
     clock_gettime(CLOCK_MONOTONIC, &t_start);

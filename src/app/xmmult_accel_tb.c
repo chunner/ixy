@@ -14,6 +14,7 @@ int main() {
     int errors = 0;
     errors += test_mmult_accel_int8();
     errors += test_mmult_accel_half();
+    errors += test_mmult_accel_int4();
     if (errors == 0) {
         printf("All tests passed successfully.\n");
     } else {
@@ -148,5 +149,106 @@ int test_mmult_accel_half() {
         printf("Matrix multiplication completed with %d errors.\n", errors);
     }
     printf("==============Test HALF done=================\n");
+    return errors;
+}
+#define bus_t uint64_t
+static int IN_PER_WORD = 16;
+static inline void store_int4_packed(bus_t* dst_words, int linear_index, int8_t v_signed)
+{
+    // clamp to int4
+    if (v_signed < -8) v_signed = -8;
+    if (v_signed >  7) v_signed =  7;
+
+    int word_idx = linear_index / IN_PER_WORD;
+    int nib_idx  = linear_index % IN_PER_WORD;
+    int shift    = nib_idx * 4;
+
+    bus_t w = dst_words[word_idx];
+    w &= ~((bus_t)0xFULL << shift);
+    w |=  ((bus_t)((uint8_t)v_signed & 0xFu) << shift);
+    dst_words[word_idx] = w;
+}
+
+int test_mmult_accel_int4() {
+    XMmult_accel *InstancePtr = xmmult_accel_device_init(pci_addr, 0.5, sizeof(int32_t));
+    int8_t A_ref[N][K], B_ref[K][M];
+    int32_t C[N][M];
+    // Initialize matrices A and B
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < K; j++) {
+            A_ref[i][j] = rand() % 16 - 8; // int4 range [-8, 7]
+        }
+    }
+    for (int i = 0; i < K; i++) {
+        for (int j = 0; j < M; j++) {
+            B_ref[i][j] = rand() % 16 - 8; // int4 range [-8, 7]
+        }
+    }
+    // Pack matrices A and B into int4 format
+    bus_t A_packed[(N * K + IN_PER_WORD - 1) / IN_PER_WORD];
+    bus_t B_packed[(K * M + IN_PER_WORD - 1) / IN_PER_WORD];
+    // Initialize packed arrays to zero
+    for (int i = 0; i < (N * K + IN_PER_WORD - 1) / IN_PER_WORD; i++) {
+        A_packed[i] = 0;
+    }
+    for (int i = 0; i < (K * M + IN_PER_WORD - 1) / IN_PER_WORD; i++) {
+        B_packed[i] = 0;
+    }
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < K; j++) {
+            store_int4_packed(A_packed, i * K + j, A_ref[i][j]);
+        }
+    }
+    for (int i = 0; i < K; i++) {
+        for (int j = 0; j < M; j++) {
+            store_int4_packed(B_packed, i * M + j, B_ref[i][j]);
+        }
+    }
+    // Perform matrix multiplication using the accelerator
+    xmmult_accel_execute(InstancePtr, (uintptr_t) A_packed, (uintptr_t) B_packed, (uintptr_t) C, N, K, M, 1, 0.5, sizeof(int32_t), 0x2000);
+    // Check results
+    int errors = 0;
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            int32_t expected = 0;
+            for (int k = 0; k < K; k++) {
+                expected += A_ref[i][k] * B_ref[k][j];
+            }
+            if (C[i][j] != expected) {
+                errors++;
+                if (errors < 10) {
+                    printf("Error at C[%d][%d]: expected %d, got %d\n", i, j, expected, C[i][j]);
+                }
+            }
+        }
+    }
+    // print results (A, B, C)
+    printf("Matrix A (int4):\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < K; j++) {
+            printf("%3d ", A_ref[i][j]);
+        }
+        printf("\n");
+    }
+    printf("Matrix B (int4):\n");
+    for (int i = 0; i < K; i++) {
+        for (int j = 0; j < M; j++) {
+            printf("%3d ", B_ref[i][j]);
+        }
+        printf("\n");
+    }
+    printf("Matrix C:\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            printf("%5d ", C[i][j]);
+        }
+        printf("\n");
+    }
+    if (errors == 0) {
+        printf("Matrix multiplication(INT_4) successful, no errors found.\n");
+    } else {
+        printf("Matrix multiplication completed with %d errors.\n", errors);
+    }
+    printf("==============Test INT4 done=================\n");
     return errors;
 }

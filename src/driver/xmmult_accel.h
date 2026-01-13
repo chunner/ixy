@@ -85,6 +85,7 @@ extern "C" {
 // 0x1000 : mmult_int8
 #define MMULT_FP16 0x0000
 #define MMULT_INT8 0x1000
+#define MMULT_INT4 0x2000
 
 
 
@@ -133,9 +134,9 @@ extern "C" {
     u32 XMmult_accel_InterruptGetEnabled(XMmult_accel *InstancePtr, u64 device_offset);
     u32 XMmult_accel_InterruptGetStatus(XMmult_accel *InstancePtr, u64 device_offset);
 
-    XMmult_accel *xmmult_accel_device_init(const char *pci_addr, size_t dsize_in, size_t dsize_out);
+    XMmult_accel *xmmult_accel_device_init(const char *pci_addr, float dsize_in, float dsize_out);
     int xmmult_accel_execute(XMmult_accel *InstancePtr, const uintptr_t A, const uintptr_t B, uintptr_t C,
-        int N, int K, int M, int updateA, size_t dsize_int, size_t dsize_out, uint64_t device_offset);
+        int N, int K, int M, int updateA, float dsize_int, float dsize_out, uint64_t device_offset);
 
 #ifdef __cplusplus
 }
