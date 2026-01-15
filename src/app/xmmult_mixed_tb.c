@@ -15,11 +15,7 @@ const char *pci_addr = "0000:00:04.0";
 #define MODE_FP32 3
 
 XMmult_mixed *InstancePtr = NULL;
-int main() {
-    InstancePtr = xmmult_mixed_device_init(pci_addr);
-    test_mmult_mixed_int8();
 
-}
 int test_mmult_mixed_int8() {
     int8_t A[N][K], B[K][M];
     int32_t C_hw[N][M], C_sw[N][M];
@@ -309,4 +305,11 @@ int test_mmult_mixed_fp32() {
         }
     }
     printf("===============FP32 matrix multiplication test passed.\n");
+}
+int main() {
+    InstancePtr = xmmult_mixed_device_init(pci_addr);
+    test_mmult_mixed_int8();
+    test_mmult_mixed_int4();
+    test_mmult_mixed_fp16();
+    test_mmult_mixed_fp32();
 }
