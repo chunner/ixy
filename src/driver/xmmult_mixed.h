@@ -132,8 +132,8 @@ extern "C" {
     u32 XMmult_mixed_InterruptGetEnabled(XMmult_mixed *InstancePtr);
     u32 XMmult_mixed_InterruptGetStatus(XMmult_mixed *InstancePtr);
     XMmult_mixed *xmmult_mixed_device_init(const char *pci_addr);
-    int xmmult_accel_execute(XMmult_mixed *InstancePtr, const uintptr_t A, const uintptr_t B, const uintptr_t C,
-        const int N, const int K, const int M, const int mode, const int updataA,
+    int xmmult_mixed_execute(XMmult_mixed *InstancePtr, const uintptr_t A, const uintptr_t B, const uintptr_t C,
+        const int N, const int K, const int M, const int mode, const int updateA,
         const size_t A_size, const size_t B_size, const size_t C_size);
 
 #ifdef __cplusplus

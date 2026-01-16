@@ -54,7 +54,7 @@ struct dma_memory memory_allocate_dma(size_t size, bool require_contiguous) {
 		return (struct dma_memory) {
 			// for VFIO, this needs to point to the device view memory = IOVA!
 			.virt = virt_addr,
-				.phy = iova
+			.phy = iova
 		};
 	} else {
 		debug("allocating dma memory via huge page");
@@ -83,7 +83,7 @@ struct dma_memory memory_allocate_dma(size_t size, bool require_contiguous) {
 		unlink(path);
 		return (struct dma_memory) {
 			.virt = virt_addr,
-				.phy = virt_to_phys(virt_addr)
+			.phy = virt_to_phys(virt_addr)
 		};
 	}
 }

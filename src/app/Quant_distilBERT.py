@@ -26,6 +26,38 @@ def call_fpga(A_buf, B_buf, C_buf, accel_ptr, N, K, M, update_A):
         update_A
     ) 
    
+class FPGADriver:
+    @staticmethod
+    def run_fp16(input, weight):
+        """
+        Runs fp16 matrix multiplication on FPGA.
+        input:  np.float16 array of shape (N, K)
+        weight: np.float16 array of shape (K, M)
+        returns: np.float16 array of shape (N, M)
+        """
+        N, K = input.shape
+        K2, M = weight.shape
+        assert K == K2, "Input and weight shapes are incompatible."
+
+        # Convert input and weight to PYNQ buffers
+        A_buf = input.ctypes.data
+        B_buf = weight.ctypes.data
+        # Allocate output buffer
+        C_np = np.empty((N, M), dtype=np.float16)
+        C_buf = C_np.ctypes.data
+
+        # Call FPGA accelerator
+        accel_ptr = accel_ip.xmmult_accel_device_init(os.environ.get('PCI_ADDR'))
+        accel_ip.xmmult_accel_execute_fp16(
+            accel_ptr,
+            A_buf,
+            B_buf,
+            C_buf,
+            N,
+            K,
+            M
+        )
+        return C_np
 
 
 # # Helper Functions

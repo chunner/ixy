@@ -20,6 +20,9 @@ typedef __uint128_t MEM_TYPE;
 #define MAX_N 64
 #define MAX_K 3072
 #define MAX_M 3072
+#define MAX_A 64 * 3072 * 4 // 768 KB
+#define MAX_B 768 * 3072 * 4 // 9 MB
+#define MAX_C 64 * 3072 * 4 // 768 KB
 
 XMmult_mixed *xmmult_mixed_device_init(const char *pci_addr) {
     ixy_log_init("xmmult_mixed.log");
@@ -32,12 +35,12 @@ XMmult_mixed *xmmult_mixed_device_init(const char *pci_addr) {
         // 文件存在，说明开启了 IOMMU，可以安全调用 vfio_init
         int vfio_fd = vfio_init(pci_addr);
         if (vfio_fd != -1) {
-            info("IOMMU/VFIO mode enabled. Container FD: %d\n", vfio_fd);
+            info("IOMMU/VFIO mode enabled. Container FD: %d", vfio_fd);
             set_vfio_container(vfio_fd);
         }
     } else {
         // 文件不存在，说明没开 IOMMU，跳过 vfio_init 以免程序崩溃
-        info("No IOMMU group found for device %s. Running in Legacy (Hugepages) mode.\n", pci_addr);
+        info("No IOMMU group found for device %s. Running in Legacy (Hugepages) mode.", pci_addr);
     }
 
     XMmult_mixed *InstancePtr = calloc(1, sizeof(XMmult_mixed));
@@ -53,7 +56,7 @@ XMmult_mixed *xmmult_mixed_device_init(const char *pci_addr) {
     return InstancePtr;
 }
 int xmmult_mixed_execute(XMmult_mixed *InstancePtr, const uintptr_t A, const uintptr_t B, const uintptr_t C,
-    const int N, const int K, const int M, const int mode, const int updataA,
+    const int N, const int K, const int M, const int mode, const int updateA,
     const size_t A_size, const size_t B_size, const size_t C_size) {
     // Copy data to device memory
     memcpy((void *) InstancePtr->dma_A.virt, (void *) A, A_size);
@@ -69,7 +72,7 @@ int xmmult_mixed_execute(XMmult_mixed *InstancePtr, const uintptr_t A, const uin
     XMmult_mixed_Set_K(InstancePtr, K);
     XMmult_mixed_Set_M(InstancePtr, M);
     XMmult_mixed_Set_mode(InstancePtr, mode);
-    XMmult_mixed_Set_update_A(InstancePtr, updataA);
+    XMmult_mixed_Set_update_A(InstancePtr, updateA);
     _mm_mfence();
     // 3. Start the accelerator
     XMmult_mixed_Start(InstancePtr);

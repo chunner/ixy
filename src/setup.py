@@ -8,6 +8,8 @@ ext_modules = [
                  'driver/device.c',
                  'driver/xmmult_accel.c',
                  'driver/xmmult_accel_tools.c',
+                 'driver/xmmult_mixed.c',
+                 'driver/xmmult_mixed_tools.c',
                  'interrupts.c',
                  'memory.c',
                  'pci.c',
